@@ -75,6 +75,7 @@ ul.obs li{margin:3px 0}
 </head>
 <body>
 <header>
+  <div style="display:flex;gap:6px;margin-bottom:10px"><a href="index.html" style="font-size:13px;padding:5px 12px;border-radius:999px;background:#1c2333;color:#fff;text-decoration:none">기본 실험</a><a href="lab.html" style="font-size:13px;padding:5px 12px;border-radius:999px;border:1px solid #cfd5df;color:#5d6678;text-decoration:none;background:#fff">직접 실험 (문제 풀이)</a></div>
   <h1>금속의 반응성 · 산화 환원 시뮬레이션</h1>
   <p>금속판을 이온이 들어 있는 수용액에 넣으면, 입자 수준에서 어떤 일이 일어날까요?</p>
 </header>
@@ -250,6 +251,19 @@ function surfaceAnchor(y){
 }
 
 /* ---------- 반응 1단위: 원자 cM개 → 전자 e개 → 이온 cI개 ---------- */
+/* 금속 안에서 생긴 이온이 갇히지 않도록: 금속 바깥 용액 쪽 빈 곳을 목적지로 정해 빠져나가게 함 */
+function escapeTo(o){
+  const r=Math.max(0,Math.min(ROWS-1,Math.round((o.y-Y0)/RH)));
+  let edge=0;for(let k=Math.max(0,r-2);k<=Math.min(ROWS-1,r+2);k++)edge=Math.max(edge,rowOuterX(k));
+  let best=null;
+  for(let tries=0;tries<60;tries++){
+    const x=Math.min(W-R,edge+D*1.2+Math.random()*90+tries*3),y=Math.max(R,Math.min(H-R,o.y+(Math.random()-.5)*(60+tries*4)));
+    const clear=S.ions.every(p=>p===o||Math.hypot(p.x-x,p.y-y)>2*R+2);
+    if(clear){best={x,y};break}
+    if(!best)best={x,y};
+  }
+  o.state='leave';o.t=0;o.x0=o.x;o.y0=o.y;o.dx=best.x;o.dy=best.y;o.dur=Math.max(.7,Math.min(1.1,Math.hypot(best.x-o.x,best.y-o.y)/160));
+}
 function rowOuterX(r){for(let c=MAXC;c>=0;c--)if(S.cells[r][c])return cx(r,c);return cx(r,0)}
 function startEvent(seed,anchor){
   if(S.ev||!reactive()||!seed)return false;
@@ -288,7 +302,8 @@ function swapPhase(){
   const ev=S.ev;ev.cDone=true;
   for(const A of ev.A){
     S.cells[A.r][A.c]=null;
-    const n=newIon(A.x,A.y,S.pm,'leave');n.vx=30+Math.random()*20;n.vy=(A.y<H/2?-1:1)*(45+Math.random()*20);n.glow=1;n.mine=true;S.ions.push(n);
+    const n=newIon(A.x,A.y,S.pm,'leave');n.glow=1;n.mine=true;S.ions.push(n);
+    escapeTo(n);
   }
   if(S.im==='H'){
     for(let k=0;k+1<ev.ions.length;k+=2){const p=ev.ions[k],q=ev.ions[k+1];S.bubbles.push({x:(p.x+q.x)/2+10,y:(p.y+q.y)/2,vx:14,vy:-30,t:0});S.h2++;p.dead=true;q.dead=true}
@@ -313,7 +328,7 @@ function step(dt){
   const canReact=reactive();
   for(const o of S.ions){
     o.t+=dt;if(o.glow)o.glow=Math.max(0,o.glow-dt*.7);
-    if(o.state==='leave'){if(S.ev&&!o.mine)continue;o.x+=o.vx*dt;o.y+=o.vy*dt;if(o.t>.8)o.state='free';continue}
+    if(o.state==='leave'){if(S.ev&&!o.mine)continue;const k=Math.min(1,o.t/o.dur),e=k*k*(3-2*k);o.x=o.x0+(o.dx-o.x0)*e;o.y=o.y0+(o.dy-o.y0)*e;if(k>=1){o.state='free';o.vx=30;o.vy=(Math.random()-.5)*40}continue}
     if(o.state==='ev')continue;
     if(S.ev)continue; // 반응 중에는 다른 이온 정지
     o.vx+=(Math.random()-.5)*700*dt;o.vy+=(Math.random()-.5)*700*dt;
@@ -331,6 +346,9 @@ function step(dt){
       if(d<2*R+2)touch=true;
       if(d<2*R){const nx=dx/d,ny=dy/d,ov=2*R-d;o.x+=nx*ov;o.y+=ny*ov;const vn=o.vx*nx+o.vy*ny;if(vn<0){o.vx-=2*vn*nx;o.vy-=2*vn*ny}}
     }
+    // 원자 사이에 끼어 있으면 바깥으로 빼냄
+    {let stuck=0;for(let r=0;r<ROWS;r++)for(let c=0;c<=MAXC;c++){if(S.cells[r][c]&&Math.hypot(o.x-cx(r,c),o.y-cy(r))<2*R-4)stuck++}
+     if(stuck)escapeTo(o)}
   }
   const fr=S.ev?[]:S.ions.filter(o=>o.state==='free'||o.state==='leave');
   for(let i=0;i<fr.length;i++)for(let j=i+1;j<fr.length;j++){
