@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>직접 실험 · 금속의 산화 환원</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f3f5f9;--card:#fff;--ink:#1c2333;--sub:#5d6678;--line:#e1e5ec;--ox:#e5484d;--rd:#2f6fed}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Noto Sans KR',system-ui,-apple-system,sans-serif;line-height:1.55}
+header{max-width:1200px;margin:0 auto;padding:18px 16px 4px}
+.nav{display:flex;gap:6px;margin-bottom:10px}
+.nav a{font-size:13px;padding:5px 12px;border-radius:999px;border:1px solid #cfd5df;color:var(--sub);text-decoration:none;background:#fff}
+.nav a.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+header h1{margin:0;font-size:23px;font-weight:700;letter-spacing:-.3px}
+header p{margin:4px 0 0;color:var(--sub);font-size:14px}
+main{max-width:1200px;margin:0 auto;padding:10px 16px 40px;display:grid;gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.card h2{margin:0 0 10px;font-size:16px;font-weight:700}
+.card h2 small{font-weight:400;color:var(--sub);font-size:12.5px;margin-left:6px}
+.setup{display:grid;grid-template-columns:1.6fr 1fr;gap:20px}
+.metals{display:grid;gap:8px}
+.metals{overflow-x:auto}
+.mrow{display:flex;align-items:center;gap:6px;font-size:14px;flex-wrap:nowrap;white-space:nowrap}
+.unk input.ts{width:50px;text-align:center;padding:5px 4px;border-color:#c4b2f0}
+.solver{background:#f5f0ff;border:1px solid #ddd0fb;border-radius:12px;padding:12px;margin-bottom:12px}
+.solver .srow{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;font-size:14px;margin-top:8px}
+.solver input[type=number]{width:72px}
+.cond{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #ddd0fb;border-radius:999px;padding:3px 6px 3px 12px;font-size:13.5px;margin:8px 6px 0 0}
+.cond button{border:none;background:none;color:#b42318;font-size:14px;padding:0 4px}
+.cond.off{opacity:.45}
+.cres{margin-top:10px;font-size:14.5px}
+.cres .ans{display:inline-flex;align-items:center;gap:8px;background:#fff;border:2px solid #16a34a;border-radius:10px;padding:6px 10px;margin:4px 6px 0 0;font-weight:700;color:#166534}
+.cres .ans button{font-size:12.5px;padding:4px 10px;border-radius:7px;border:1px solid #16a34a;background:#16a34a;color:#fff}
+.cmp tr.ok td{background:#e9f9ee}
+.cmp tr.ok.cur td{background:#d9f5c9}
+.mrow .rkl{font-size:13px;color:var(--sub);display:inline-flex;align-items:center;gap:4px}
+.mrow input.rkI{width:52px;text-align:center;padding:5px 4px}
+.orderLine{display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-size:14px;font-weight:500;color:var(--sub);background:#f7f8fb;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:10px}
+.orderLine .oc{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:30px;padding:0 6px;border-radius:999px;border:1.3px solid #2b2b2b;font-weight:700;font-size:15px}
+.orderLine .gt{font-size:20px;font-weight:700;color:var(--ink)}
+.mrow .mv{border:1px solid #cfd5df;background:#fff;border-radius:6px;width:26px;height:26px;padding:0;font-size:12px;color:var(--sub)}
+.mrow .mv:disabled{opacity:.35;cursor:default}
+input[type=text]{font:inherit;font-size:14px;padding:6px 8px;border:1px solid #cfd5df;border-radius:8px;background:#fff;color:var(--ink)}
+.mrow input.nm{width:44px;text-align:center;font-weight:700}
+.mrow input.qq{width:48px;text-align:center}
+.mrow .del{border:none;background:none;color:#b42318;font-size:16px;padding:0 4px}
+.unk{font-size:12.5px;color:#7c3aed;display:inline-flex;gap:4px;align-items:center}
+.cmp td.hit{background:#eef4ff}
+.cmp tr.cur td{background:#fffbea}
+.chip{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;border:1.3px solid #2b2b2b;font-weight:700}
+select,input[type=number]{font:inherit;font-size:14px;padding:6px 8px;border:1px solid #cfd5df;border-radius:8px;background:#fff;color:var(--ink)}
+input[type=number]{width:80px}
+.hint{font-size:12.5px;color:var(--sub);margin:6px 0 0}
+button{font:inherit;cursor:pointer}
+.btn{border:none;border-radius:9px;padding:8px 14px;font-size:14px;font-weight:500}
+.btn.dark{background:var(--ink);color:#fff}
+.btn.ghost{background:#fff;border:1px solid #cfd5df;color:var(--ink)}
+.btn.add{background:#2f6fed;color:#fff}
+.simwrap{position:relative;border:2px solid #e11d2e;border-radius:4px;overflow:hidden;background:#e4fbff}
+#sim{display:block;width:100%;aspect-ratio:760/480}
+.status{position:absolute;left:12px;top:10px;background:rgba(28,35,51,.85);color:#fff;border-radius:999px;padding:4px 12px;font-size:13px}
+.addrow{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;margin-top:12px;padding:10px 12px;background:#f5f8ff;border:1px solid #d9e4fb;border-radius:12px}
+.addrow b{font-size:14px}
+.addrow label{font-size:14px;color:var(--sub);display:flex;align-items:center;gap:5px}
+.ctrl{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-top:10px}
+.ctrl label{font-size:14px;color:var(--sub);display:flex;align-items:center;gap:6px}
+input[type=range]{width:110px}
+.msg{font-size:13px;color:#b42318;min-height:18px;margin-top:6px}
+.queue{font-size:13px;color:var(--sub)}
+.grid2{display:grid;grid-template-columns:1fr 1.4fr;gap:14px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{border:1px solid var(--line);padding:6px 8px;text-align:center}
+th{background:#f5f6f9;font-weight:500;color:var(--sub);font-size:13px}
+td.l{text-align:left}
+.sum{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.stat.cons{grid-column:1/-1;background:#f5f0ff;border:1px solid #ddd0fb}
+.stat .v2{font-size:16px;font-weight:700;color:#4c1d95}
+.stat{background:#f7f8fb;border-radius:10px;padding:8px 10px}
+.stat .k{font-size:12px;color:var(--sub)}.stat .v{font-size:19px;font-weight:700}
+.bar{display:flex;height:22px;border-radius:6px;overflow:hidden;margin-top:10px;border:1px solid var(--line);background:#f3f4f7}
+.bar div{display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:#1c2333;white-space:nowrap;overflow:hidden}
+.ratio{font-size:13.5px;margin-top:6px}
+.empty{color:var(--sub);font-size:13.5px;text-align:center;padding:14px}
+.tip{font-size:13px;background:#fffbea;border:1px solid #f3e1a0;border-radius:10px;padding:8px 10px;margin-top:10px}
+@media(max-width:900px){.setup{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}}
+.tw{overflow-x:auto}
+</style>
+</head>
+<body>
+<header>
+  <div class="nav"><a href="index.html">기본 실험</a><a class="on" href="lab.html">직접 실험 (문제 풀이)</a></div>
+  <h1>직접 실험 · 금속과 금속 양이온의 반응</h1>
+  <p>문제에 나온 이온과 금속을 직접 넣고, 과정마다 양이온 수가 어떻게 변하는지 눈으로 확인해 보세요.</p>
+</header>
+<main>
+  <section class="card setup">
+    <div>
+      <h2>① 금속 목록 <small>반응성 1위가 가장 커요(전자를 잃기 쉬움)</small></h2>
+      <div class="orderLine" id="orderLine"></div>
+      <div class="metals" id="metals"></div>
+      <button class="btn ghost" id="addMetal" style="margin-top:8px">＋ 금속 추가</button>
+      <p class="hint">이온 전하에는 숫자(1~4)나 <b>문자(a, b, m …)</b>를 쓸 수 있어요. 문자로 쓰면 애니메이션은 학생이 적은 <b>시험값</b>으로 보여주고, 아래 <b>미지수 경우 비교</b>에서 문제 조건을 넣으면 맞는 값을 계산해 줘요.<br>수용액에 이온이 여러 종류면 반응성이 작은 금속의 이온부터 환원돼요.</p>
+    </div>
+    <div>
+      <h2>② 입자 수 단위</h2>
+      <label style="font-size:14px">N = 입자 <select id="nsize"><option value="1">1</option><option value="2" selected>2</option><option value="4">4</option></select> 개</label>
+      <p class="hint">0.5N, 7.5N처럼 소수가 나오면 N을 2 이상으로 정하세요.</p>
+      <h2 style="margin-top:12px">예제 불러오기</h2>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><select id="preset" style="max-width:100%"></select><button class="btn ghost" id="loadBtn">불러오기</button></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="simwrap"><canvas id="sim"></canvas><div class="status" id="status"></div></div>
+    <div class="addrow">
+      <b>④ 비커에 넣기</b>
+      <select id="pType"><option value="ion">금속 양이온 수용액</option><option value="metal">고체 금속</option></select>
+      <select id="pM"></select>
+      <label><input type="number" id="pN" value="6" min="0.5" step="0.5"> N 개</label>
+      <label id="exWrap" style="display:none"><input type="checkbox" id="pEx"> 충분한 양</label>
+      <button class="btn add" id="addBtn">＋ 넣기</button>
+      <span class="queue" id="queue"></span>
+    </div>
+    <div class="msg" id="msg"></div>
+    <div class="ctrl">
+      <button class="btn dark" id="runBtn">⏸ 일시정지</button>
+      <button class="btn ghost" id="stepBtn">⏭ 1단위 반응</button>
+      <button class="btn ghost" id="fastBtn">⏩ 결과 바로 보기</button>
+      <button class="btn ghost" id="resetBtn">↺ 비커 비우기</button>
+      <label>속도 <input type="range" id="speed" min="0.3" max="4" step="0.1" value="1.2"></label>
+      <label><input type="checkbox" id="showE" checked> 전자</label>
+    </div>
+  </section>
+
+  <div class="grid2">
+    <section class="card">
+      <h2>현재 비커 속 <small>N 단위</small></h2>
+      <div class="tw"><table id="nowTbl"></table></div>
+      <div class="sum" id="sum"></div>
+      <div class="bar" id="bar"></div>
+      <div class="ratio" id="ratioTxt"></div>
+    </section>
+    <section class="card">
+      <h2>과정별 결과 <small>문제의 표와 비교해 보세요</small></h2>
+      <div class="tw" id="logWrap"></div>
+      <div class="tip"><b>확인 포인트</b> · 반응 전후 <b>양이온의 총 전하량</b>은 변하지 않아요(이온을 새로 넣을 때만 늘어나요). · 녹은 금속 수 = 생긴 그 금속 이온 수. · 전체 양이온 수는 (환원된 이온 수 − 생긴 이온 수)만큼 줄어요.</div>
+    </section>
+  </div>
+  <section class="card" id="cmpCard" style="display:none">
+    <h2>미지수 경우 비교 <small>각 과정이 끝난 뒤 수용액 속 양이온 · 문제의 표와 같은 줄을 찾아보세요</small></h2>
+    <div class="solver">
+      <b>문제 조건으로 미지수 구하기</b> <span class="hint" style="margin:0">문제의 표에 나온 값을 넣으면, 조건을 모두 만족하는 미지수를 찾아 줘요.</span>
+      <div class="srow">
+        <select id="cP"></select> 후 <select id="cK"></select> = <input type="number" id="cV" min="0" step="0.5" value="0"> N
+        <button class="btn ghost" id="cAdd">＋ 조건 추가</button>
+        <label style="color:var(--sub);margin-left:auto">미지수 범위 1 ~ <select id="uMax"><option>3</option><option>4</option></select></label>
+      </div>
+      <div id="cList"></div>
+      <div class="cres" id="cRes"></div>
+    </div>
+    <div class="tw" id="cmp"></div>
+    <p class="hint">노란 줄은 지금 애니메이션에 쓰는 시험값, 초록 줄은 넣은 조건을 모두 만족하는 경우예요.</p>
+  </section>
+</main>
+
+<script>
+/* ---------- 설정 ---------- */
+const $=s=>document.querySelector(s);
+const PAL=[{fill:'#fbd0a0',txt:'#4a2a08'},{fill:'#b4d2ff',txt:'#0f2a55'},{fill:'#c3e8b2',txt:'#1b4510'},{fill:'#f6bfd5',txt:'#5a1030'},{fill:'#d9c8f5',txt:'#2e1660'},{fill:'#f3e59a',txt:'#4a3f05'}];
+const ECOL=['#e5484d','#16a34a','#7c3aed','#ea580c','#0891b2','#db2777'];
+/* METS: 반응성 큰 순서. q = '2' 같은 숫자 또는 'a' 같은 미지수, test = 미지수일 때 애니메이션에 쓰는 값 */
+let METS=[{name:'B',q:'3',ci:1,test:2},{name:'A',q:'2',ci:0,test:2},{name:'C',q:'1',ci:2,test:2}];
+const CFG={N:2};
+const PRESETS=[
+ {name:'예제 1 · A³⁺ 8N + B 9N (B→B²⁺)',metals:[['B','2'],['A','3']],N:2,steps:[['ion','A',8],['metal','B',9]]},
+ {name:'예제 2 · A³⁺ 10N + B 6N (B→B²⁺)',metals:[['B','2'],['A','3']],N:2,steps:[['ion','A',10],['metal','B',6]]},
+ {name:'예제 3 · 금속 B 5N + A⁺ 12N (B→B²⁺)',metals:[['B','2'],['A','1']],N:2,steps:[['metal','B',5],['ion','A',12]]},
+ {name:'예제 4 · 두 이온 · A²⁺ 4N, B³⁺ 4N + 금속 C 충분 (C→C⁺)',metals:[['C','1'],['B','3'],['A','2']],N:2,steps:[['ion','A',4],['ion','B',4],['metal','C',0,true]]},
+ {name:'예제 5 · 미지수 · Aᵃ⁺ 6N + B 2N → A가 3N 줄어드는 a, b는?',metals:[['B','b'],['A','a']],N:2,steps:[['ion','A',6],['metal','B',2]]}
+];
+const names=()=>METS.map(x=>x.name);
+const mObj=n=>METS.find(x=>x.name===n);
+const isUnk=o=>/^[a-z]$/.test(o.q);
+const unknowns=()=>[...new Set(METS.filter(isUnk).map(o=>o.q))];
+const qv=n=>{const o=mObj(n);return isUnk(o)?o.test:+o.q};
+const qT=n=>{const o=mObj(n);return(o.q==='1'?'':o.q)+'+'};       // 캔버스용 '2+', 'a+', '+'
+const supL=n=>{const o=mObj(n);const m={'1':'','2':'²','3':'³','4':'⁴'};return(isUnk(o)?o.q:m[o.q])+'⁺'};
+const col=n=>PAL[mObj(n).ci%PAL.length];
+const rank=n=>METS.findIndex(x=>x.name===n);
+const ionH=n=>{const o=mObj(n);return n+`<sup>${o.q==='1'?'':(isUnk(o)?`<i>${o.q}</i>`:o.q)}+</sup>`};
+const gcd=(a,b)=>b?gcd(b,a%b):a;
+function fmtN(n){const v=+(n/CFG.N).toFixed(2);if(v===0)return'0';return(v===1?'':v)+'N'}
+function ratioQ(qa,qb){const L=qa*qb/gcd(qa,qb);return{cM:L/qa,cI:L/qb,e:L}}
+function ratio(M,X){return ratioQ(qv(M),qv(X))}
+const LABELS=['(가)','(나)','(다)','(라)','(마)','(바)','(사)','(아)','(자)','(차)'];
+/* 총 전하량: 미지수가 있으면 식으로 */
+function chgStr(ion){
+  let num=0;const terms={};
+  names().forEach(m=>{if(!ion[m])return;const o=mObj(m);if(isUnk(o))terms[o.q]=(terms[o.q]||0)+ion[m];else num+=ion[m]*+o.q});
+  const parts=Object.keys(terms).map(L=>{const v=+(terms[L]/CFG.N).toFixed(2);return(v===1?'':v)+L+'N'});
+  if(num||!parts.length)parts.unshift(fmtN(num));
+  return parts.join(' + ');
+}
+
+/* 설정 UI */
+function buildSetup(){
+  const n=METS.length;
+  $('#metals').innerHTML=METS.map((o,i)=>`<div class="mrow" data-i="${i}">
+    <label class="rkl">반응성 <input type="number" class="rkI" min="1" max="${n}" value="${i+1}">위</label>
+    <span class="chip" style="background:${PAL[o.ci%PAL.length].fill};color:${PAL[o.ci%PAL.length].txt}">${o.name}</span>
+    금속 <input type="text" class="nm" maxlength="2" value="${o.name}"> → 이온 전하 <input type="text" class="qq" maxlength="1" value="${o.q}">+
+    ${isUnk(o)?`<span class="unk">시험값 ${o.q} = <input type="number" class="ts" min="1" max="4" step="1" value="${o.test}"></span>`:''}
+    <button class="del" title="삭제" ${n<=1?'disabled':''}>✕</button></div>`).join('');
+  $('#metals').querySelectorAll('.mrow').forEach(row=>{
+    const i=+row.dataset.i,o=METS[i];
+    row.querySelector('.rkI').onchange=e=>{let v=Math.round(+e.target.value);
+      if(!(v>=1&&v<=n)){$('#msg').textContent=`반응성 순위는 1~${n} 사이의 숫자로 써 주세요.`;e.target.value=i+1;return}
+      METS.splice(i,1);METS.splice(v-1,0,o);replay(`${o.name}의 반응성을 ${v}위로 바꿔서 처음부터 다시 진행해요.`)};
+    row.querySelector('.del').onclick=()=>{METS.splice(i,1);changed(`금속 ${o.name}을(를) 지웠어요.`)};
+    row.querySelector('.nm').onchange=e=>{const v=e.target.value.trim().toUpperCase();
+      if(!/^[A-Z][A-Z0-9]?$/.test(v)||(v!==o.name&&METS.some(x=>x.name===v))){$('#msg').textContent='금속 이름은 겹치지 않는 영문 1~2글자로 써 주세요.';e.target.value=o.name;return}
+      o.name=v;changed('금속 이름을 바꿔서 비커를 비웠어요.')};
+    row.querySelector('.qq').onchange=e=>{const v=e.target.value.trim();
+      if(!/^[1-4]$/.test(v)&&!/^[a-z]$/.test(v)){$('#msg').textContent='이온 전하는 1~4의 숫자나 영문 소문자 한 글자(a, b, m …)로 써 주세요.';e.target.value=o.q;return}
+      o.q=v;replay('이온 전하를 바꿔서 처음부터 다시 진행해요.')};
+    const ts=row.querySelector('.ts');if(ts)ts.onchange=e=>{const v=+e.target.value;
+      if(!(Number.isInteger(v)&&v>=1&&v<=4)){$('#msg').textContent='시험값은 1~4의 자연수로 써 주세요.';e.target.value=o.test;return}
+      setTest(o.q,v)};
+  });
+  $('#addMetal').disabled=METS.length>=6;
+  $('#orderLine').innerHTML='반응성 &nbsp;'+METS.map(o=>`<span class="oc" style="background:${PAL[o.ci%PAL.length].fill};color:${PAL[o.ci%PAL.length].txt}">${o.name}</span>`).join('<span class="gt">&gt;</span>');
+  $('#nsize').value=CFG.N;
+  const cur=$('#pM').value;
+  $('#pM').innerHTML=METS.map(o=>`<option value="${o.name}">${o.name}</option>`).join('');
+  if(METS.some(o=>o.name===cur))$('#pM').value=cur;
+  updateAddLabels();
+}
+function changed(note){buildSetup();resetAll(note)}
+/* 금속 이름은 그대로이고 전하·순서·시험값만 바뀐 경우: 넣었던 과정을 처음부터 다시 진행 */
+function replay(note){const procs=[...S.procs,...S.queue].map(p=>({...p}));buildSetup();resetAll(note);procs.forEach(p=>S.queue.push(p));renderQueue();renderCmp()}
+function setTest(L,v){METS.forEach(x=>{if(x.q===L)x.test=v});replay(`시험값 ${L} = ${v}(으)로 바꿔서 넣었던 과정을 처음부터 다시 진행해요.`)}
+$('#addMetal').onclick=()=>{
+  if(METS.length>=6)return;
+  const nm='ABCDEFGHXYZ'.split('').find(c=>!METS.some(o=>o.name===c));
+  const used=METS.map(o=>o.ci);const ci=[0,1,2,3,4,5].find(c=>!used.includes(c));
+  METS.push({name:nm,q:'2',ci,test:2});changed(`금속 ${nm}을(를) 추가했어요. (반응성이 가장 작은 자리)`);
+};
+function updateAddLabels(){
+  const ion=$('#pType').value==='ion';
+  [...$('#pM').options].forEach(o=>o.textContent=ion?`${o.value}${supL(o.value)}`:`금속 ${o.value}`);
+  $('#exWrap').style.display=ion?'none':'flex';
+}
+$('#nsize').onchange=e=>{CFG.N=+e.target.value;resetAll('N 단위를 바꿔서 비커를 비웠어요.')};
+$('#pType').onchange=updateAddLabels;
+$('#preset').innerHTML=PRESETS.map((p,i)=>`<option value="${i}">${p.name}</option>`).join('');
+
+/* ---------- 캔버스 ---------- */
+const cv=$('#sim'),ctx=cv.getContext('2d');
+const W=760,H=480,R=17,D=36,PC=21,PR=5,PX0=22,PY0=H-22;
+(function(){const d=window.devicePixelRatio||1;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0)})();
+const pX=c=>PX0+c*D, pY=r=>PY0-r*D;
+const ZT=PY0-PR*D+D/2; // 고체 금속 칸 경계(점선)
+const FONT='"Noto Sans KR",sans-serif';
+
+let S,speed=1.2;
+function initState(){
+  S={cells:[],res:[],ions:[],elec:[],ev:null,banner:null,t:0,cool:.4,running:true,pauseAfter:false,
+     queue:[],procs:[],added:{},note:null,cur:null,log:[],units:0,instant:false};
+  for(let r=0;r<PR;r++){S.cells[r]=Array(PC).fill(null);S.res[r]=Array(PC).fill(false)}
+  $('#runBtn').textContent='⏸ 일시정지';
+}
+function resetAll(note){initState();$('#msg').textContent=note||'';renderLog();renderCmp()}
+
+/* ---------- 입자 관리 ---------- */
+function pileTopY(){let y=PY0+D;for(let r=0;r<PR;r++)for(let c=0;c<PC;c++)if(S.cells[r][c])y=Math.min(y,pY(r));return y}
+function colTopY(c){for(let r=PR-1;r>=0;r--)if(S.cells[r][c])return pY(r);return PY0+D}
+function freeCells(){let n=0;for(let r=0;r<PR;r++)for(let c=0;c<PC;c++)if(!S.cells[r][c]&&!S.res[r][c])n++;return n}
+function placeAtoms(m,k){
+  for(let i=0;i<k;i++){
+    const dl=S.instant?-10:i*.05;
+    let done=false;
+    for(let r=0;r<PR&&!done;r++)for(let c=0;c<PC&&!done;c++){
+      if(S.cells[r][c]||S.res[r][c])continue;
+      if(r>0&&!S.cells[r-1][c])continue;
+      S.cells[r][c]={m,o:'solid',b:S.t+dl,drop:!S.instant};done=true;
+    }
+    if(!done)return false;
+  }
+  return true;
+}
+function newIon(x,y,m,state){const a=Math.random()*6.28;return{x,y,vx:Math.cos(a)*35,vy:Math.sin(a)*35,m,state,t:0}}
+function spawnIon(m){
+  const top=ZT-R-4;
+  for(let k=0;k<400;k++){
+    const x=R+6+Math.random()*(W-2*R-12),y=R+6+Math.random()*(top-R-6);
+    if(S.ions.every(o=>Math.hypot(o.x-x,o.y-y)>2*R+2)){const o=newIon(x,y,m,'free');o.pop=1;S.ions.push(o);return}
+  }
+  const o=newIon(R+Math.random()*(W-2*R),R+Math.random()*(top-R),m,'free');o.pop=1;S.ions.push(o);
+}
+function counts(){
+  const ion={},solid={};names().forEach(m=>{ion[m]=0;solid[m]=0});
+  for(const o of S.ions)if(o.state==='free'||o.state==='leave'||(o.state==='ev'&&!(S.ev&&S.ev.cDone)))ion[o.m]++;
+  for(let r=0;r<PR;r++)for(let c=0;c<PC;c++){const a=S.cells[r][c];if(a)solid[a.m]++}
+  return{ion,solid};
+}
+function exposed(r,c){
+  if(r===PR-1)return true;
+  const e=(rr,cc)=>rr>=0&&rr<PR&&cc>=0&&cc<PC&&!S.cells[rr][cc]&&!S.res[rr][cc];
+  return e(r+1,c)||e(r,c-1)||e(r,c+1);
+}
+function pickOx(M,p){
+  for(const needExp of [true,false]){
+    let best=null,bd=1e9;
+    for(let r=0;r<PR;r++)for(let c=0;c<PC;c++){
+      const a=S.cells[r][c];if(!a||a.m!==M||a.pend)continue;if(needExp&&!exposed(r,c))continue;
+      const d=Math.hypot(pX(c)-p.x,pY(r)-p.y);if(d<bd){bd=d;best=[r,c]}
+    }
+    if(best)return best;
+  }
+  return null;
+}
+function findEmpty(p){
+  let best=null,bd=1e9;
+  for(let r=0;r<PR;r++)for(let c=0;c<PC;c++){
+    if(S.cells[r][c]||S.res[r][c])continue;
+    if(r>0&&!S.cells[r-1][c])continue;
+    const d=Math.hypot(pX(c)-p.x,pY(r)-p.y)+r*10;if(d<bd){bd=d;best=[r,c]}
+  }
+  return best;
+}
+
+/* ---------- 다음에 일어날 반응 고르기 ---------- */
+function pickPair(){
+  const {ion,solid}=counts();
+  const X=names().filter(m=>ion[m]>0).sort((a,b)=>rank(b)-rank(a)); // 반응성 작은 금속의 이온부터
+  let short=null;
+  for(const x of X){
+    const Ms=names().filter(m=>solid[m]>0&&rank(m)<rank(x)).sort((a,b)=>rank(a)-rank(b)); // 반응성 큰 금속부터
+    for(const m of Ms){
+      const r=ratio(m,x);
+      if(solid[m]>=r.cM&&ion[x]>=r.cI)return{M:m,X:x,...r};
+      short={M:m,X:x,...r};
+    }
+  }
+  S.short=short;return null;
+}
+
+/* ---------- 반응 1단위 ---------- */
+function startUnit(pr){
+  const {M,X,cM,cI}=pr,a=qv(M),b=qv(X);
+  const first=pickOx(M,{x:W/2,y:pileTopY()-D});if(!first)return false;
+  const anchor={x:pX(first[1]),y:pY(first[0])};
+  const ats=[],tgs=[];
+  const undo=()=>{tgs.forEach(t=>{if(!t.hole)S.res[t.r][t.c]=false});ats.forEach(([r,c])=>{if(S.cells[r][c])S.cells[r][c].pend=null})};
+  for(let k=0;k<cM;k++){const p=pickOx(M,anchor);if(!p){undo();return false}S.cells[p[0]][p[1]].pend=true;ats.push(p)}
+  ats.slice(0,Math.min(cM,cI)).forEach(([r,c])=>tgs.push({r,c,hole:true}));
+  while(tgs.length<cI){const t=findEmpty(anchor);if(!t){undo();S.full=true;return false}S.res[t[0]][t[1]]=true;tgs.push({r:t[0],c:t[1]})}
+  const ions=S.ions.filter(o=>o.state==='free'&&o.m===X).sort((p,q)=>Math.hypot(p.x-anchor.x,p.y-anchor.y)-Math.hypot(q.x-anchor.x,q.y-anchor.y)).slice(0,cI);
+  if(ions.length<cI){undo();return false}
+  tgs.sort((p,q)=>pX(p.c)-pX(q.c));ions.sort((p,q)=>p.x-q.x);ats.sort((p,q)=>pX(p[1])-pX(q[1]));
+  const A=ats.map(([r,c],i)=>{const o={r,c,x:pX(c),y:pY(r),col:ECOL[i%ECOL.length],left:a};S.cells[r][c].pend=o;return o});
+  ions.forEach((o,i)=>{const t=tgs[i];o.state='ev';o.x0=o.x;o.y0=o.y;o.tr=t;o.tx=pX(t.c);o.ty=pY(t.r);o.recv=[];
+    o.sx=o.tx;o.sy=Math.max(R+4,Math.min(colTopY(t.c),o.ty)-D*1.05)});
+  ions.forEach((o,i)=>ions.slice(0,i).forEach(p=>{if(Math.hypot(p.sx-o.sx,p.sy-o.sy)<2*R)o.sy-=2*R}));
+  const eTot=cM*a,eDur=.6,gap=eDur+.15,tA=1.0;
+  for(let g=0;g<eTot;g++){
+    const src=A[Math.floor(g/a)],dst=ions[Math.floor(g/b)];
+    S.elec.push({src,dst,ang:(g%a)/a*Math.PI*2-Math.PI/2,t:-(tA+g*gap),dur:eDur,col:src.col});
+  }
+  const tC=tA+(eTot-1)*gap+eDur+.2;
+  S.ev={M,X,A,ions,tgs,t:0,tA,tC,tEnd:tC+1.0,eTot,eDone:0,cM,cI,n:S.units+1,cDone:false};
+  S.banner=null;
+  if(S.instant){swapPhase();finishUnit()}
+  return true;
+}
+function swapPhase(){
+  const ev=S.ev;ev.cDone=true;
+  const top=ZT-R-10;
+  for(const A of ev.A){
+    S.cells[A.r][A.c]=null;
+    const n=newIon(A.x,A.y,ev.M,'leave');n.glow=1;n.x0=A.x;n.y0=A.y;
+    n.dx=Math.max(R+4,Math.min(W-R-4,A.x+(Math.random()-.5)*240));n.dy=R+10+Math.random()*(top-R-10);
+    if(S.instant){n.x=n.dx;n.y=n.dy;n.state='free';n.glow=0}
+    S.ions.push(n);
+  }
+  ev.tgs.forEach(t=>S.res[t.r][t.c]=true);
+}
+function finishUnit(){
+  const ev=S.ev;
+  ev.ions.forEach(o=>{const t=o.tr;S.cells[t.r][t.c]={m:o.m,o:'dep',b:S.t};S.res[t.r][t.c]=false;o.dead=true});
+  S.ions=S.ions.filter(o=>!o.dead);
+  S.units++;
+  if(S.cur){S.cur.units++;S.cur.ox[ev.M]=(S.cur.ox[ev.M]||0)+ev.cM;S.cur.red[ev.X]=(S.cur.red[ev.X]||0)+ev.cI}
+  S.banner={M:ev.M,X:ev.X,cM:ev.cM,cI:ev.cI,eTot:ev.eTot,n:ev.n,t:0};
+  S.elec=[];S.ev=null;S.cool=S.instant?0:1.3;
+  if(S.pauseAfter){S.running=false;S.pauseAfter=false;$('#runBtn').textContent='▶ 실행'}
+}
+
+/* ---------- 과정(넣기) 처리 ---------- */
+function applyProcess(p){
+  const label=LABELS[S.log.length]||`(${S.log.length+1})`;
+  let n=p.n;
+  if(p.type==='metal'&&p.ex){
+    // 충분한 양: 지금 수용액의 이온을 모두 환원시킬 수 있는 양보다 넉넉하게
+    const {ion}=counts();let need=0;
+    names().forEach(x=>{if(ion[x]&&rank(p.m)<rank(x))need+=ion[x]*qv(x)});
+    n=Math.min(freeCells(),Math.ceil(need/qv(p.m))+2*CFG.N);
+    n=Math.ceil(n/CFG.N)*CFG.N;if(n>freeCells())n=freeCells();
+  }
+  if(p.type==='ion'){for(let i=0;i<n;i++)spawnIon(p.m);S.added[p.m]=(S.added[p.m]||0)+n}
+  else if(!placeAtoms(p.m,n)){$('#msg').textContent='비커 바닥 공간이 부족해요. N 단위를 줄여 보세요.'}
+  const desc=p.type==='ion'?`${ionH(p.m)} ${fmtN(n)}`:`금속 ${p.m} ${fmtN(n)}${p.ex?' (충분한 양)':''}`;
+  S.cur={label,desc,units:0,ox:{},red:{}};
+  S.procs.push({type:p.type,m:p.m,n:p.n,ex:p.ex});
+  S.note={t:0,txt:p.type==='ion'?`${label} ${p.m}${supL(p.m)} 수용액 ${fmtN(n)} 넣음`:`${label} 금속 ${p.m} ${fmtN(n)} 넣음 · 아직 전하가 없는 금속 원자예요`};
+  return p.type==='metal'?.7+n*.05+1.4:1.0;
+}
+function endProcess(){
+  const {ion,solid}=counts();
+  let note='';
+  if(!S.cur.units)note='반응 없음';
+  if(S.short&&!S.full)note+=(note?' · ':'')+`남은 입자가 반응 1단위(${S.short.M} ${S.short.cM}개 + ${S.short.X}${supL(S.short.X)} ${S.short.cI}개)보다 적어 멈춤`;
+  if(S.full)note+=(note?' · ':'')+'바닥 공간 부족으로 멈춤';
+  S.log.push({...S.cur,ion:{...ion},solid:{...solid},note});
+  S.cur=null;S.short=null;S.full=false;
+  renderLog();
+}
+
+/* ---------- 진행 ---------- */
+function step(dt){
+  S.t+=dt;
+  if(!S.ev){
+    S.cool-=dt;
+    if(S.cool<=0||S.instant){
+      if(S.cur){
+        const pr=pickPair();
+        if(!(pr&&startUnit(pr)))endProcess();
+        S.cool=S.instant?0:.8;
+      }else if(S.queue.length){const w=applyProcess(S.queue.shift());S.cool=S.instant?0:w;renderQueue()}
+    }
+  }
+  if(S.ev&&!S.instant){
+    const ev=S.ev;ev.t+=dt;
+    const sm=k=>{k=Math.max(0,Math.min(1,k));return k*k*(3-2*k)};
+    if(ev.t>=ev.tC&&!ev.cDone)swapPhase();
+    const e1=sm(ev.t/ev.tA),e2=sm((ev.t-ev.tC-.1)/.7);
+    for(const o of ev.ions){if(ev.t<ev.tC){o.x=o.x0+(o.sx-o.x0)*e1;o.y=o.y0+(o.sy-o.y0)*e1}else{o.x=o.sx+(o.tx-o.sx)*e2;o.y=o.sy+(o.ty-o.sy)*e2}}
+    for(const e of S.elec){
+      e.t+=dt;
+      if(!e.started&&e.t>=0){e.started=true;e.src.left--}
+      if(!e.done&&e.t>=e.dur){e.done=true;e.dst.recv.push(e.col);ev.eDone++}
+    }
+    S.elec=S.elec.filter(e=>!e.done);
+    if(ev.t>=ev.tEnd)finishUnit();
+  }
+  if(S.banner)S.banner.t+=dt;
+  if(S.note){S.note.t+=dt;if(S.note.t>3)S.note=null}
+  for(const o of S.ions){
+    o.t+=dt;if(o.glow)o.glow=Math.max(0,o.glow-dt*.6);if(o.pop)o.pop=Math.max(0,o.pop-dt*2);
+    if(o.state==='leave'){const k=Math.min(1,o.t/.9),e=k*k*(3-2*k);o.x=o.x0+(o.dx-o.x0)*e;o.y=o.y0+(o.dy-o.y0)*e;if(k>=1)o.state='free';continue}
+    if(o.state!=='free'||S.ev||S.instant)continue; // 반응 중에는 다른 이온 정지
+    o.vx+=(Math.random()-.5)*600*dt;o.vy+=(Math.random()-.5)*600*dt;
+    const sp=Math.hypot(o.vx,o.vy);if(sp>70){o.vx*=70/sp;o.vy*=70/sp}
+    o.x+=o.vx*dt;o.y+=o.vy*dt;
+    if(o.x<R){o.x=R;o.vx=Math.abs(o.vx)}if(o.x>W-R){o.x=W-R;o.vx=-Math.abs(o.vx)}
+    if(o.y<R){o.y=R;o.vy=Math.abs(o.vy)}if(o.y>ZT-R){o.y=ZT-R;o.vy=-Math.abs(o.vy)} // 고체 금속 칸으로 못 들어감
+    for(let r=0;r<PR;r++)for(let c=0;c<PC;c++){
+      if(!S.cells[r][c])continue;
+      const dx=o.x-pX(c),dy=o.y-pY(r),d=Math.hypot(dx,dy)||.01;
+      if(d<2*R){const nx=dx/d,ny=dy/d;o.x+=nx*(2*R-d);o.y+=ny*(2*R-d);const vn=o.vx*nx+o.vy*ny;if(vn<0){o.vx-=2*vn*nx;o.vy-=2*vn*ny}}
+    }
+  }
+  if(!S.ev&&!S.instant){
+    const fr=S.ions.filter(o=>o.state==='free');
+    for(let i=0;i<fr.length;i++)for(let j=i+1;j<fr.length;j++){
+      const a=fr[i],b=fr[j],dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||.01;
+      if(d<2*R){const p=(2*R-d)/2,nx=dx/d,ny=dy/d;a.x-=nx*p;a.y-=ny*p;b.x+=nx*p;b.y+=ny*p}
+    }
+    fr.forEach(o=>{o.y=Math.max(R,Math.min(ZT-R,o.y))});
+  }
+}
+function busy(){return !!(S.ev||S.cur||S.queue.length)}
+
+/* ---------- 그리기 ---------- */
+function drawPart(x,y,r,m,q,glow,pop){
+  const C=col(m);if(pop)r*=1+.25*pop;
+  if(glow){ctx.beginPath();ctx.arc(x,y,r+6*glow,0,7);ctx.fillStyle=`rgba(229,72,77,${.35*glow})`;ctx.fill()}
+  ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fillStyle=C.fill;ctx.fill();ctx.lineWidth=1.3;ctx.strokeStyle='#2b2b2b';ctx.stroke();
+  ctx.fillStyle=C.txt;ctx.textBaseline='middle';
+  const fs=r*.95,main=`700 ${fs}px ${FONT}`,small=`500 ${fs*.62}px ${FONT}`;
+  if(q){const s=typeof q==='string'?q:(q===1?'':q)+'+';ctx.font=main;const w1=ctx.measureText(m).width;ctx.font=small;const w2=ctx.measureText(s).width;
+    const x0=x-(w1+w2)/2;ctx.textAlign='left';ctx.font=main;ctx.fillText(m,x0,y+1);ctx.font=small;ctx.fillText(s,x0+w1,y-fs*.38)}
+  else{ctx.textAlign='center';ctx.font=main;ctx.fillText(m,x,y+1)}
+}
+function eDot(x,y,col,r=5){ctx.beginPath();ctx.arc(x,y,r+3,0,7);ctx.fillStyle='rgba(255,210,63,.35)';ctx.fill();ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fillStyle='#ffd23f';ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=2;ctx.stroke()}
+function tag(x,y,txt,col){ctx.font=`700 11px ${FONT}`;const w=ctx.measureText(txt).width+10;ctx.fillStyle='rgba(255,255,255,.92)';ctx.strokeStyle=col;ctx.lineWidth=1.2;ctx.beginPath();ctx.roundRect(x-w/2,y-8,w,16,8);ctx.fill();ctx.stroke();ctx.fillStyle=col;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,x,y+.5)}
+function draw(){
+  ctx.fillStyle='#e4fbff';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(140,146,158,.18)';ctx.fillRect(0,PY0-PR*D+D/2,W,PR*D+4);
+  ctx.beginPath();ctx.moveTo(0,PY0-PR*D+D/2);ctx.lineTo(W,PY0-PR*D+D/2);ctx.setLineDash([8,6]);ctx.strokeStyle='#8a93a3';ctx.lineWidth=1.5;ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#5d6678';ctx.font=`500 11px ${FONT}`;ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillText('고체 금속',W-8,PY0-PR*D+D/2-9);
+  ctx.textAlign='left';ctx.font=`700 13px ${FONT}`;ctx.fillStyle='#1c2333';ctx.fillText('반응성  '+names().join('  >  '),10,PY0-PR*D+D/2-10);
+  const showE=$('#showE').checked;
+  for(let r=0;r<PR;r++)for(let c=0;c<PC;c++){
+    const a=S.cells[r][c];if(!a)continue;
+    const x=pX(c);let y=pY(r);
+    if(a.drop){const t=S.t-a.b;if(t<0)continue;const k=Math.min(1,t/.7);y=-R+(pY(r)+R)*k*k;if(k>=1)a.drop=false}
+    if(a.pend&&a.pend.col){const p=.5+.5*Math.sin(S.t*8);ctx.beginPath();ctx.arc(x,y,R+4+2*p,0,7);ctx.strokeStyle=a.pend.col;ctx.lineWidth=3;ctx.stroke()}
+    drawPart(x,y,R,a.m,0,0,Math.max(0,1-(S.t-a.b)/.3)*.0);
+  }
+  if(S.ev&&showE)for(const A of S.ev.A)for(let k=0;k<A.left;k++){const ang=k/qv(S.ev.M)*Math.PI*2-Math.PI/2;eDot(A.x+Math.cos(ang)*(R-3),A.y+Math.sin(ang)*(R-3),A.col,4.5)}
+  for(const o of S.ions){
+    if(o.state==='ev'){
+      ctx.beginPath();ctx.arc(o.x,o.y,R+4,0,7);ctx.setLineDash([4,3]);ctx.strokeStyle='#2f6fed';ctx.lineWidth=2;ctx.stroke();ctx.setLineDash([]);
+      drawPart(o.x,o.y,R,o.m,o.recv.length>=qv(o.m)?0:qT(o.m),0);
+      if(showE&&!S.ev.cDone)o.recv.forEach((col,k)=>{const ang=Math.PI/2+(k-(o.recv.length-1)/2)*.75;eDot(o.x+Math.cos(ang)*(R-3),o.y+Math.sin(ang)*(R-3),col,4.5)});
+      continue;
+    }
+    drawPart(o.x,o.y,R,o.m,qT(o.m),o.glow||0,o.pop||0);
+  }
+  if(showE&&S.ev)for(const e of S.elec){
+    if(e.t<0)continue;const k=Math.min(1,e.t/e.dur),ease=k*k*(3-2*k);
+    const x0=e.src.x+Math.cos(e.ang)*(R-3),y0=e.src.y+Math.sin(e.ang)*(R-3);
+    const x=x0+(e.dst.x-x0)*ease,y=y0+(e.dst.y-y0)*ease-Math.sin(Math.PI*k)*24;
+    eDot(x,y,e.col,6);ctx.fillStyle='#5a4200';ctx.font=`700 8px ${FONT}`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('e⁻',x,y+.5);
+  }
+  if(S.ev){
+    if(!S.ev.cDone)for(const A of S.ev.A)tag(A.x,A.y-R-11,'산화',A.col);
+    for(const o of S.ev.ions)tag(o.x,o.y-R-11,'환원','#2f6fed');
+  }
+  if(S.note&&!S.ev){const a=Math.min(1,(3-S.note.t)/.5);ctx.globalAlpha=Math.max(0,a);ctx.font=`700 14px ${FONT}`;const w=ctx.measureText(S.note.txt).width+28;
+    ctx.fillStyle='rgba(255,255,255,.95)';ctx.strokeStyle='#1c2333';ctx.lineWidth=1.5;ctx.beginPath();ctx.roundRect(W/2-w/2,ZT-56,w,32,16);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#1c2333';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(S.note.txt,W/2,ZT-40);ctx.globalAlpha=1}
+  drawBanner();
+}
+function drawBanner(){
+  const ev=S.ev||S.banner;if(!ev)return;
+  let alpha=1;if(!S.ev){alpha=1-Math.max(0,S.banner.t-1.4)/.4;if(alpha<=0){S.banner=null;return}}
+  const a=qv(ev.M),b=qv(ev.X),done=S.ev?S.ev.eDone:ev.eTot;
+  
+  const L0=`반응 ${ev.n}번째`+(S.ev?' · 진행 중':' · 완료');
+  const asm=[ev.M,ev.X].map(mObj).filter(isUnk).map(o=>`${o.q}=${o.test}`);const L0b=asm.length?`   (${[...new Set(asm)].join(', ')}로 가정)`:'';
+  const L1=`산화  금속 ${ev.M} ${ev.cM}개가 전자를 ${a}개씩 잃음 → ${ev.M}${supL(ev.M)} ${ev.cM}개`;
+  const L2=`환원  ${ev.X}${supL(ev.X)} ${ev.cI}개가 전자를 ${b}개씩 얻음 → 금속 ${ev.X} ${ev.cI}개`;
+  const L4=`전하량  ${ev.X}${supL(ev.X)} ${ev.cI}개×${b} = ${ev.cI*b} 감소,  ${ev.M}${supL(ev.M)} ${ev.cM}개×${a} = ${ev.cM*a} 증가  → 양이온 총 전하량 그대로`+(S.ev&&!S.ev.cDone?'':'  ✓');
+  const L3=`이동한 전자 ${done} / ${ev.eTot}`+(done===ev.eTot?'   ✓ 잃은 전자 수 = 얻은 전자 수':'');
+  ctx.globalAlpha=alpha;ctx.font=`700 13px ${FONT}`;
+  const w=Math.max(ctx.measureText(L0+L0b).width,ctx.measureText(L1).width,ctx.measureText(L2).width,ctx.measureText(L3).width+ev.eTot*14+10,ctx.measureText(L4).width)+24,h=124,x=W-w-10,y=10;
+  ctx.fillStyle='rgba(255,255,255,.95)';ctx.strokeStyle='#d6dbe4';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(x,y,w,h,10);ctx.fill();ctx.stroke();
+  ctx.textAlign='left';ctx.textBaseline='middle';
+  ctx.fillStyle='#1c2333';ctx.fillText(L0+L0b,x+12,y+16);
+  ctx.fillStyle='#e5484d';ctx.fillText(L1,x+12,y+38);
+  ctx.fillStyle='#2f6fed';ctx.fillText(L2,x+12,y+60);
+  ctx.fillStyle='#333';ctx.font=`500 13px ${FONT}`;ctx.fillText(L3,x+12,y+82);
+  const w3=ctx.measureText(L3).width;
+  for(let k=0;k<ev.eTot;k++){const dx=x+12+w3+14+k*14,dy=y+82;ctx.beginPath();ctx.arc(dx,dy,5,0,7);ctx.fillStyle=k<done?'#ffd23f':'#eef0f4';ctx.fill();ctx.strokeStyle='#a87b00';ctx.lineWidth=1;ctx.stroke()}
+  ctx.fillStyle='#7c3aed';ctx.font=`700 13px ${FONT}`;ctx.fillText(L4,x+12,y+106);
+  ctx.globalAlpha=1;
+}
+
+/* ---------- 표 ---------- */
+function used(){const s=new Set();S.log.forEach(l=>names().forEach(m=>{if(l.ion[m]||l.solid[m])s.add(m)}));const {ion,solid}=counts();names().forEach(m=>{if(ion[m]||solid[m])s.add(m)});return names().filter(m=>s.has(m))}
+function consHTML(ion){
+  const num=o=>names().reduce((s,m)=>s+(o[m]||0)*qv(m),0);
+  if(!names().some(m=>S.added[m]))return'';
+  const ok=num(S.added)===num(ion),unk=unknowns().length;
+  return `<div class="stat cons"><div class="k">전하량 보존 · 넣어 준 양이온의 전하량 = 지금 양이온의 전하량</div>
+    <div class="v2">${chgStr(S.added)} <b>=</b> ${chgStr(ion)} ${S.ev?'<span style="color:#5d6678">(반응 중)</span>':ok?`<span style="color:#16a34a">✓ 보존${unk?' (시험값 기준)':''}</span>`:''}</div>
+    ${unk?'<div class="k" style="margin-top:4px">미지수가 있으면 이 식이 그대로 방정식이 돼요.</div>':''}</div>`;
+}
+function renderNow(){
+  const {ion,solid}=counts(),U=used();
+  if(!U.length){$('#nowTbl').innerHTML='<tr><td class="empty">아래 ④에서 이온 수용액이나 금속을 넣어 보세요.</td></tr>';$('#sum').innerHTML='';$('#bar').innerHTML='';$('#ratioTxt').innerHTML='';return}
+  $('#nowTbl').innerHTML=`<tr><th></th>${U.map(m=>`<th>${m}</th>`).join('')}</tr>
+   <tr><td class="l">수용액 속 이온</td>${U.map(m=>`<td>${ionH(m)} ${fmtN(ion[m])}</td>`).join('')}</tr>
+   <tr><td class="l">고체 금속</td>${U.map(m=>`<td>${m} ${fmtN(solid[m])}</td>`).join('')}</tr>`;
+  const tot=names().reduce((s,m)=>s+ion[m],0),chg=chgStr(ion);
+  $('#sum').innerHTML=`<div class="stat"><div class="k">전체 양이온 수</div><div class="v">${fmtN(tot)}</div></div><div class="stat"><div class="k">양이온의 총 전하량</div><div class="v">${chg}</div></div>`+consHTML(ion);
+  const P=names().filter(m=>ion[m]>0);
+  $('#bar').innerHTML=P.map(m=>`<div style="width:${ion[m]/tot*100}%;background:${col(m).fill}">${m}${supL(m)}</div>`).join('');
+  if(P.length>1){const g=P.map(m=>ion[m]).reduce(gcd);$('#ratioTxt').innerHTML='양이온 수 비 &nbsp;'+P.map(ionH).join(' : ')+' = <b>'+P.map(m=>ion[m]/g).join(' : ')+'</b>'}
+  else $('#ratioTxt').innerHTML=P.length?`양이온은 ${ionH(P[0])} 한 종류`:'수용액에 양이온이 없어요';
+}
+function renderLog(){
+  if(!S.log.length){$('#logWrap').innerHTML='<div class="empty">과정을 진행하면 여기에 결과가 쌓여요.</div>';return}
+  const U=used();
+  const rows=S.log.map(l=>{
+    const tot=names().reduce((s,m)=>s+l.ion[m],0),chg=chgStr(l.ion);
+    const kinds=names().filter(m=>l.ion[m]).map(ionH).join(', ')||'없음';
+    const rx=l.units?Object.keys(l.ox).map(m=>`${m} ${fmtN(l.ox[m])} 산화`).concat(Object.keys(l.red).map(x=>`${ionH(x)} ${fmtN(l.red[x])} 환원`)).join('<br>'):'반응 없음';
+    return `<tr><td><b>${l.label}</b></td><td class="l">${l.desc}</td><td class="l" style="font-size:12.5px">${rx}${l.note&&l.units?`<br><span style="color:#b42318">${l.note}</span>`:(!l.units&&l.note&&l.note!=='반응 없음'?`<br><span style="color:#b42318">${l.note.replace('반응 없음 · ','')}</span>`:'')}</td>
+      <td>${kinds}</td>${U.map(m=>`<td>${fmtN(l.ion[m])}</td>`).join('')}<td><b>${fmtN(tot)}</b></td><td>${chg}</td>
+      <td class="l">${names().filter(m=>l.solid[m]).map(m=>`${m} ${fmtN(l.solid[m])}`).join(', ')||'없음'}</td></tr>`;
+  }).join('');
+  $('#logWrap').innerHTML=`<table><tr><th rowspan="2">과정</th><th rowspan="2">넣어 준 것</th><th rowspan="2">일어난 반응</th><th colspan="${U.length+3}">반응 후 수용액</th><th rowspan="2">고체 금속</th></tr>
+   <tr><th>양이온 종류</th>${U.map(m=>`<th>${ionH(m)}</th>`).join('')}<th>전체 양이온 수</th><th>총 전하량</th></tr>${rows}</table>`;
+}
+function renderQueue(){$('#queue').textContent=S.queue.length?`대기 중 ${S.queue.length}개`:''}
+function updateStatus(){
+  const st=$('#status');
+  if(S.ev)st.textContent=`${S.cur?S.cur.label+' ':''}반응 중`;
+  else if(S.cur||S.queue.length)st.textContent=`${S.cur?S.cur.label+' ':''}진행 중`;
+  else st.textContent=S.log.length?`${S.log.at(-1).label} 끝 · 더 넣을 수 있어요`:'비커가 비어 있어요';
+}
+
+/* ---------- 미지수 경우 비교 (개수만으로 계산) ---------- */
+function simCounts(qf,procs){
+  const ns=names(),ion={},solid={};ns.forEach(m=>{ion[m]=0;solid[m]=0});
+  const rows=[];
+  for(const p of procs){
+    let n=p.n;
+    if(p.type==='metal'&&p.ex){let need=0;ns.forEach(x=>{if(ion[x]&&rank(p.m)<rank(x))need+=ion[x]*qf(x)});n=Math.ceil((Math.ceil(need/qf(p.m))+2*CFG.N)/CFG.N)*CFG.N}
+    (p.type==='ion'?ion:solid)[p.m]+=n;
+    let short=false;
+    for(let g=0;g<2000;g++){
+      short=false;let done=false;
+      const X=ns.filter(m=>ion[m]>0).sort((a,b)=>rank(b)-rank(a));
+      outer:for(const x of X)for(const m of ns.filter(m=>solid[m]>0&&rank(m)<rank(x)).sort((a,b)=>rank(a)-rank(b))){
+        const r=ratioQ(qf(m),qf(x));
+        if(solid[m]>=r.cM&&ion[x]>=r.cI){solid[m]-=r.cM;ion[m]+=r.cM;ion[x]-=r.cI;solid[x]+=r.cI;done=true;break outer}
+        short=true;
+      }
+      if(!done)break;
+    }
+    rows.push({ion:{...ion},solid:{...solid},short});
+  }
+  return rows;
+}
+let COND=[],UMAX=3,MATCH=[];
+function condVal(r,k){if(k==='tot')return names().reduce((s,m)=>s+r.ion[m],0);const [t,m]=k.split(':');return(t==='ion'?r.ion:r.solid)[m]||0}
+function condLabel(k){if(k==='tot')return'전체 양이온 수';const [t,m]=k.split(':');return t==='ion'?`${ionH(m)} 수`:`고체 ${m} 수`}
+function renderSolver(procs,U){
+  const cp=$('#cP').value,ck=$('#cK').value;
+  $('#cP').innerHTML=procs.map((p,i)=>`<option value="${i}">${LABELS[i]||i+1}</option>`).join('');
+  const ks=['tot',...names().map(m=>'ion:'+m),...names().map(m=>'solid:'+m)];
+  $('#cK').innerHTML=ks.map(k=>`<option value="${k}">${condLabel(k).replace(/<[^>]+>/g,'').replace(/(\d)\+/,'$1+')}</option>`).join('');
+  if(cp!==''&&+cp<procs.length)$('#cP').value=cp;if(ks.includes(ck))$('#cK').value=ck;
+  $('#cList').innerHTML=COND.map((c,i)=>`<span class="cond ${c.p<procs.length?'':'off'}">${LABELS[c.p]||c.p+1} 후 ${condLabel(c.k)} = <b>${fmtN(c.v*CFG.N)}</b><button data-i="${i}" title="지우기">✕</button></span>`).join('');
+  $('#cList').querySelectorAll('button').forEach(b=>b.onclick=()=>{COND.splice(+b.dataset.i,1);renderCmp()});
+  const act=COND.filter(c=>c.p<procs.length);
+  const R=$('#cRes');
+  if(!act.length){R.innerHTML='<span class="hint">아직 조건이 없어요. 문제의 표에서 값을 하나씩 넣어 보세요.</span>';return}
+  if(!MATCH.length){R.innerHTML='<b style="color:#b42318">조건을 모두 만족하는 경우가 없어요.</b> <span class="hint">넣은 양, 반응성 순서, 조건 값, 미지수 범위를 확인해 보세요.</span>';return}
+  R.innerHTML=(MATCH.length===1?'<b>✓ 조건을 모두 만족하는 값</b><br>':`<b>조건을 만족하는 경우가 ${MATCH.length}가지예요.</b> <span class="hint">조건을 더 넣으면 하나로 좁혀져요.</span><br>`)+
+    MATCH.map((v,j)=>`<span class="ans">${U.map((L,i)=>`${L} = ${v[i]}`).join(', ')}<button data-j="${j}">시험값으로 적용</button></span>`).join('');
+  R.querySelectorAll('button').forEach(b=>b.onclick=()=>{const v=MATCH[+b.dataset.j];U.forEach((L,i)=>METS.forEach(x=>{if(x.q===L)x.test=v[i]}));replay(`조건을 만족하는 값(${U.map((L,i)=>L+' = '+v[i]).join(', ')})으로 다시 진행해요.`)});
+}
+function renderCmp(){
+  MATCH=[];
+  const U=unknowns(),card=$('#cmpCard');
+  const procs=[...S.procs,...S.queue];
+  if(!U.length||!procs.length){card.style.display='none';return}
+  card.style.display='block';
+  const VS=[...Array(UMAX)].map((_,i)=>i+1);let combos=[[]];U.forEach(()=>{combos=combos.flatMap(c=>VS.map(v=>[...c,v]))});
+  const ns=names(),curVals=U.map(L=>METS.find(o=>o.q===L).test);
+  const head=procs.map((p,i)=>`<th>${LABELS[i]||''} 후<br><span style="font-weight:400">${p.type==='ion'?ionH(p.m)+' '+fmtN(p.n):'금속 '+p.m+' '+(p.ex?'충분한 양':fmtN(p.n))} 넣음</span></th>`).join('');
+  let anyShort=false;
+  const rows=combos.map(vals=>{
+    const qf=m=>{const o=mObj(m);return isUnk(o)?vals[U.indexOf(o.q)]:+o.q};
+    const res=simCounts(qf,procs);
+    const cur=vals.every((v,i)=>v===curVals[i]);
+    const act=COND.filter(c=>c.p<res.length);const ok=act.length&&act.every(c=>Math.abs(condVal(res[c.p],c.k)-c.v*CFG.N)<1e-6);
+    if(ok)MATCH.push(vals);
+    return `<tr class="${cur?'cur':''} ${ok?'ok':''}"><td><b>${U.map((L,i)=>`${L} = ${vals[i]}`).join('<br>')}</b></td>${res.map(r=>{
+      const tot=ns.reduce((s,m)=>s+r.ion[m],0);
+      const list=ns.filter(m=>r.ion[m]).map(m=>`${ionH(m)} ${fmtN(r.ion[m])}`).join(', ')||'없음';
+      const sol=ns.filter(m=>r.solid[m]).map(m=>`${m} ${fmtN(r.solid[m])}`).join(', ');
+      if(r.short)anyShort=true;
+      return `<td class="l" style="font-size:13px">${list}<br><b>전체 ${fmtN(tot)}</b>${sol?`<br><span style="color:#5d6678">고체 ${sol}</span>`:''}${r.short?' *':''}</td>`}).join('')}</tr>`;
+  }).join('');
+  renderSolver(procs,U);
+  $('#cmp').innerHTML=`<table class="cmp"><tr><th>경우</th>${head}</tr>${rows}</table>`+(anyShort?'<p class="hint">* 남은 입자가 반응 1단위보다 적어 거기서 멈춘 경우예요. ②에서 N을 키우면 더 정확해져요.</p>':'');
+}
+
+/* ---------- 이벤트 ---------- */
+$('#addBtn').onclick=()=>{
+  const type=$('#pType').value,m=$('#pM').value,ex=type==='metal'&&$('#pEx').checked;
+  const v=+$('#pN').value;let n=0;
+  if(!ex){
+    if(!(v>0)){$('#msg').textContent='개수를 입력하세요.';return}
+    n=v*CFG.N;
+    if(Math.abs(n-Math.round(n))>1e-9){$('#msg').textContent=`${v}N은 입자 ${n}개라서 표현할 수 없어요. ③에서 N을 2 이상으로 바꾸세요.`;return}
+    n=Math.round(n);
+    if(type==='ion'){const tot=S.ions.length+S.queue.filter(q=>q.type==='ion').reduce((s,q)=>s+q.n,0)+n;if(tot>75){$('#msg').textContent='이온이 너무 많아요. ③에서 N을 줄이거나 개수를 줄여 보세요.';return}}
+    else if(n>freeCells()-S.queue.filter(q=>q.type==='metal').reduce((s,q)=>s+q.n,0)){$('#msg').textContent='비커 바닥 공간이 부족해요. N을 줄여 보세요.';return}
+  }
+  $('#msg').textContent='';
+  S.queue.push({type,m,n,ex});
+  renderCmp();
+  if(!S.running){S.running=true;$('#runBtn').textContent='⏸ 일시정지'}
+  renderQueue();
+};
+$('#runBtn').onclick=()=>{S.running=!S.running;S.pauseAfter=false;$('#runBtn').textContent=S.running?'⏸ 일시정지':'▶ 실행'};
+$('#stepBtn').onclick=()=>{
+  if(S.ev){S.running=true;S.pauseAfter=true;return}
+  if(!S.cur&&S.queue.length){applyProcess(S.queue.shift());renderQueue()}
+  if(!S.cur){$('#msg').textContent='먼저 ④에서 무언가를 넣어 주세요.';return}
+  const pr=pickPair();
+  if(pr&&startUnit(pr)){S.running=true;S.pauseAfter=true;$('#runBtn').textContent='⏸ 일시정지'}
+  else{endProcess();$('#msg').textContent='더 이상 일어날 반응이 없어요.'}
+};
+$('#fastBtn').onclick=()=>{
+  S.instant=true;
+  if(S.ev){swapPhase();finishUnit()}
+  let k=0;while(busy()&&k<5000){step(.02);k++}
+  S.instant=false;S.cool=.5;S.running=true;$('#runBtn').textContent='⏸ 일시정지';
+};
+$('#resetBtn').onclick=()=>resetAll('');
+$('#cAdd').onclick=()=>{const v=+$('#cV').value;if(!(v>=0)||$('#cP').value===''){$('#msg').textContent='조건 값을 확인해 주세요.';return}
+  if(Math.abs(v*CFG.N-Math.round(v*CFG.N))>1e-9){$('#msg').textContent=`${v}N은 지금 N 단위로 나타낼 수 없어요. ②에서 N을 키워 주세요.`;return}
+  COND.push({p:+$('#cP').value,k:$('#cK').value,v});$('#msg').textContent='';renderCmp()};
+$('#uMax').onchange=e=>{UMAX=+e.target.value;renderCmp()};
+$('#speed').oninput=e=>speed=+e.target.value;
+$('#loadBtn').onclick=()=>{
+  const p=PRESETS[+$('#preset').value];
+  COND=[];METS=p.metals.map(([name,q],i)=>({name,q,ci:i,test:2}));CFG.N=p.N;buildSetup();resetAll(`예제를 불러왔어요: ${p.name}`);
+  p.steps.forEach(([type,m,n,ex])=>S.queue.push({type,m,n:n*CFG.N,ex:!!ex}));renderQueue();renderCmp();
+};
+
+let last=performance.now(),lastUI=0;
+function loop(now){
+  const dt=Math.min(.05,(now-last)/1000);last=now;
+  if(S.running)step(dt*speed);
+  draw();
+  if(now-lastUI>150){renderNow();updateStatus();lastUI=now}
+  requestAnimationFrame(loop);
+}
+buildSetup();initState();renderLog();renderCmp();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
