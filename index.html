@@ -230,12 +230,17 @@ function findTarget(p,maxd){
   return bd<maxd?best:null;
 }
 function pickOx(p){
-  let best=null,bd=1e9;
-  for(let r=0;r<ROWS;r++)for(let c=0;c<=MAXC;c++){
-    const a=S.cells[r][c];if(!a||a.m!==S.pm||a.pend||!exposed(r,c))continue;
-    const d=Math.hypot(cx(r,c)-p.x,cy(r)-p.y);if(d<bd){bd=d;best=[r,c]}
+  // 1순위: 용액에 닿은 원자, 2순위: 석출된 금속 바로 뒤의 원자(석출 금속을 통해 전자가 이동)
+  const touchesDep=(r,c)=>NB[r][c].some(([a,b])=>S.cells[a][b]&&S.cells[a][b].o==='dep');
+  for(const test of [exposed,touchesDep]){
+    let best=null,bd=1e9;
+    for(let r=0;r<ROWS;r++)for(let c=0;c<=MAXC;c++){
+      const a=S.cells[r][c];if(!a||a.m!==S.pm||a.pend||!test(r,c))continue;
+      const d=Math.hypot(cx(r,c)-p.x,cy(r)-p.y);if(d<bd){bd=d;best=[r,c]}
+    }
+    if(best)return best;
   }
-  return best;
+  return null;
 }
 /* 금속판 표면 위의 한 점 (해당 높이에서 가장 바깥쪽 원자 옆) */
 function surfaceAnchor(y){
@@ -245,44 +250,59 @@ function surfaceAnchor(y){
 }
 
 /* ---------- 반응 1단위: 원자 cM개 → 전자 e개 → 이온 cI개 ---------- */
+function rowOuterX(r){for(let c=MAXC;c>=0;c--)if(S.cells[r][c])return cx(r,c);return cx(r,0)}
 function startEvent(seed,anchor){
   if(S.ev||!reactive()||!seed)return false;
   anchor=anchor||seed;
-  const {cM,cI}=ratio(S.pm,S.im),a=METALS[S.pm].q,b=METALS[S.im].q;
+  const {cM,cI}=ratio(S.pm,S.im),a=METALS[S.pm].q,isH=S.im==='H';
   const pool=S.ions.filter(o=>o.state==='free'&&o.m===S.im&&o!==seed).sort((p,q)=>dist(p,anchor)-dist(q,anchor));
   if(pool.length<cI-1)return false;
   const ions=[seed,...pool.slice(0,cI-1)];
   const tgs=[],ats=[];
-  const undo=()=>{tgs.forEach(([r,c])=>S.res[r][c]=false);ats.forEach(([r,c])=>{if(S.cells[r][c])S.cells[r][c].pend=null})};
-  for(let k=0;k<cI;k++){const t=findTarget(anchor,k?D*4:D*2.4);if(!t){undo();return false}S.res[t[0]][t[1]]=true;tgs.push(t)}
+  const undo=()=>{tgs.forEach(t=>{if(!t.hole)S.res[t.r][t.c]=false});ats.forEach(([r,c])=>{if(S.cells[r][c])S.cells[r][c].pend=null})};
+  // 1) 산화될 금속판 원자
   for(let k=0;k<cM;k++){const p=pickOx(anchor);if(!p){undo();return false}S.cells[p[0]][p[1]].pend=true;ats.push(p)}
-  tgs.sort((p,q)=>cy(p[0])-cy(q[0]));ions.sort((p,q)=>p.y-q.y);ats.sort((p,q)=>cy(p[0])-cy(q[0]));
+  // 2) 환원된 금속이 들어갈 자리: 먼저 산화된 원자가 빠져나간 빈자리(금속판 안), 남으면 그 옆 표면
+  if(!isH)ats.slice(0,Math.min(cM,cI)).forEach(([r,c])=>tgs.push({r,c,hole:true}));
+  while(tgs.length<cI){const t=findTarget(anchor,D*4);if(!t){undo();return false}S.res[t[0]][t[1]]=true;tgs.push({r:t[0],c:t[1]})}
+  tgs.sort((p,q)=>cy(p.r)-cy(q.r));ions.sort((p,q)=>p.y-q.y);ats.sort((p,q)=>cy(p[0])-cy(q[0]));
   const A=ats.map(([r,c],i)=>{const o={r,c,x:cx(r,c),y:cy(r),col:ECOL[i%ECOL.length],left:a};S.cells[r][c].pend=o;return o});
-  ions.forEach((o,i)=>{o.state='ev';o.x0=o.x;o.y0=o.y;o.tr=tgs[i];o.tx=cx(tgs[i][0],tgs[i][1]);o.ty=cy(tgs[i][0]);o.recv=[]});
-  const eTot=cM*a,eDur=.7,gap=eDur+.2; // 전자는 한 개씩 차례로
+  ions.forEach((o,i)=>{const t=tgs[i];o.state='ev';o.x0=o.x;o.y0=o.y;o.tr=t;o.tx=cx(t.r,t.c);o.ty=cy(t.r);o.recv=[];
+    // 빈자리로 들어갈 이온은 먼저 표면 바로 앞에서 대기
+    if(t.hole){o.sx=rowOuterX(t.r)+D*1.05;o.sy=o.ty}else{o.sx=o.tx;o.sy=o.ty}
+  });
+  // 같은 줄에서 대기하면 겹치지 않게 조금씩 비켜 세움
+  ions.forEach((o,i)=>ions.slice(0,i).forEach(p=>{if(Math.hypot(p.sx-o.sx,p.sy-o.sy)<2*R)o.sx+=2*R}));
+  const eTot=cM*a,eDur=.7,gap=eDur+.2,tA=1.2;
   for(let g=0;g<eTot;g++){
-    const src=A[Math.floor(g/a)],dst=ions[Math.floor(g/b)];
-    const ang=(g%a)/a*Math.PI*2-Math.PI/2;
-    S.elec.push({src,dst,ang,t:-(1.2+g*gap),dur:eDur,col:src.col});
+    const src=A[Math.floor(g/a)],dst=ions[Math.floor(g/METALS[S.im].q)];
+    S.elec.push({src,dst,ang:(g%a)/a*Math.PI*2-Math.PI/2,t:-(tA+g*gap),dur:eDur,col:src.col});
   }
-  S.ev={A,ions,tgs,t:0,tEnd:1.2+(eTot-1)*gap+eDur,eTot,eDone:0,cM,cI,n:S.units+1};
+  const tE=tA+(eTot-1)*gap+eDur,tC=tE+.25;
+  S.ev={A,ions,tgs,t:0,tA,tC,tEnd:tC+(isH?.6:1.1),eTot,eDone:0,cM,cI,n:S.units+1,cDone:false};
   S.banner=null;
   return true;
 }
-function finishEvent(){
-  const ev=S.ev,a=METALS[S.pm].q,b=METALS[S.im].q;
+/* 전자를 모두 주고받은 뒤: 산화된 원자는 양이온이 되어 나가고, 환원된 원자는 그 자리로 들어감 */
+function swapPhase(){
+  const ev=S.ev;ev.cDone=true;
   for(const A of ev.A){
     S.cells[A.r][A.c]=null;
-    const n=newIon(A.x,A.y,S.pm,'leave');n.vx=45+Math.random()*35;n.vy=(Math.random()-.5)*50;n.glow=1;S.ions.push(n);
+    const n=newIon(A.x,A.y,S.pm,'leave');n.vx=30+Math.random()*20;n.vy=(A.y<H/2?-1:1)*(45+Math.random()*20);n.glow=1;n.mine=true;S.ions.push(n);
   }
   if(S.im==='H'){
-    for(let k=0;k+1<ev.ions.length;k+=2){const p=ev.ions[k],q=ev.ions[k+1];S.bubbles.push({x:(p.x+q.x)/2+10,y:(p.y+q.y)/2,vx:14,vy:-30,t:0});S.h2++}
-    S.lastH2=S.t;ev.tgs.forEach(([r,c])=>S.res[r][c]=false);
-  }else ev.ions.forEach(o=>{const[r,c]=o.tr;S.cells[r][c]={m:o.m,o:'dep',b:S.t};S.res[r][c]=false;S.dep++});
+    for(let k=0;k+1<ev.ions.length;k+=2){const p=ev.ions[k],q=ev.ions[k+1];S.bubbles.push({x:(p.x+q.x)/2+10,y:(p.y+q.y)/2,vx:14,vy:-30,t:0});S.h2++;p.dead=true;q.dead=true}
+    S.lastH2=S.t;ev.tgs.forEach(t=>S.res[t.r][t.c]=false);
+  }else ev.tgs.forEach(t=>{S.res[t.r][t.c]=true});
+}
+function finishEvent(){
+  const ev=S.ev,a=METALS[S.pm].q,b=METALS[S.im].q;
+  if(S.im!=='H')ev.ions.forEach(o=>{const t=o.tr;S.cells[t.r][t.c]={m:o.m,o:'dep',b:S.t};S.res[t.r][t.c]=false;S.dep++});
   ev.ions.forEach(o=>o.dead=true);
+  S.ions.forEach(o=>o.mine=false);
   S.eLost+=ev.cM*a;S.eGain+=ev.cI*b;S.oxN+=ev.cM;S.redN+=ev.cI;S.units++;
   S.banner={cM:ev.cM,cI:ev.cI,eTot:ev.eTot,n:ev.n,t:0};
-  S.cool=1.8; // 다음 반응 전 쉬는 시간
+  S.cool=1.8;
   S.ev=null;
   if(S.pauseAfter){S.running=false;S.pauseAfter=false;$('#runBtn').textContent='▶ 실행'}
 }
@@ -293,7 +313,7 @@ function step(dt){
   const canReact=reactive();
   for(const o of S.ions){
     o.t+=dt;if(o.glow)o.glow=Math.max(0,o.glow-dt*.7);
-    if(o.state==='leave'){if(S.ev)continue;o.x+=o.vx*dt;o.y+=o.vy*dt;if(o.t>.8)o.state='free';continue}
+    if(o.state==='leave'){if(S.ev&&!o.mine)continue;o.x+=o.vx*dt;o.y+=o.vy*dt;if(o.t>.8)o.state='free';continue}
     if(o.state==='ev')continue;
     if(S.ev)continue; // 반응 중에는 다른 이온 정지
     o.vx+=(Math.random()-.5)*700*dt;o.vy+=(Math.random()-.5)*700*dt;
@@ -321,8 +341,11 @@ function step(dt){
   if(!S.ev){S.cool-=dt;if(S.cool<=0&&canReact&&!S.pauseAfter){const free=S.ions.filter(o=>o.state==='free'&&o.m===S.im);if(free.length){const sd=free.sort((p,q)=>p.x-q.x)[0];if(!startEvent(sd,surfaceAnchor(sd.y)))S.cool=.5}}}
   if(S.ev){
     const ev=S.ev;ev.t+=dt;
-    const k=Math.min(1,ev.t/1.2),e=k*k*(3-2*k);
-    for(const o of ev.ions){o.x=o.x0+(o.tx-o.x0)*e;o.y=o.y0+(o.ty-o.y0)*e}
+    const sm=k=>{k=Math.max(0,Math.min(1,k));return k*k*(3-2*k)};
+    const e1=sm(ev.t/ev.tA);
+    if(ev.t>=ev.tC&&!ev.cDone)swapPhase();
+    const e2=sm((ev.t-ev.tC-.15)/.75);
+    for(const o of ev.ions){if(ev.t<ev.tC){o.x=o.x0+(o.sx-o.x0)*e1;o.y=o.y0+(o.sy-o.y0)*e1}else{o.x=o.sx+(o.tx-o.sx)*e2;o.y=o.sy+(o.ty-o.sy)*e2}}
   }
   for(const e of S.elec){
     e.t+=dt;
@@ -330,7 +353,7 @@ function step(dt){
     if(!e.done&&e.t>=e.dur){e.done=true;e.dst.recv.push(e.col);if(S.ev)S.ev.eDone++}
   }
   S.elec=S.elec.filter(e=>!e.done);
-  if(S.ev&&S.ev.t>=S.ev.tEnd+.35)finishEvent();
+  if(S.ev&&S.ev.t>=S.ev.tEnd)finishEvent();
   if(S.banner)S.banner.t+=dt;
   S.ions=S.ions.filter(o=>!o.dead);
   S.bubbles.forEach(b=>{b.t+=dt;b.x+=b.vx*dt;b.y+=b.vy*dt;b.vy-=12*dt});S.bubbles=S.bubbles.filter(b=>b.y>-40);
@@ -390,8 +413,8 @@ function draw(){
   for(const o of S.ions){
     if(o.state==='ev'){
       ctx.beginPath();ctx.arc(o.x,o.y,R+5,0,7);ctx.setLineDash([4,3]);ctx.strokeStyle='#2f6fed';ctx.lineWidth=2;ctx.stroke();ctx.setLineDash([]);
-      drawPart(o.x,o.y,R,o.m,METALS[o.m].q,0);
-      if(showE)o.recv.forEach((col,k)=>{const ang=Math.PI/2+(k-(o.recv.length-1)/2)*.7;eDot(o.x+Math.cos(ang)*(R-3),o.y+Math.sin(ang)*(R-3),col,5)});
+      drawPart(o.x,o.y,R,o.m,o.recv.length>=METALS[o.m].q?0:METALS[o.m].q,0);
+      if(showE&&!S.ev.cDone)o.recv.forEach((col,k)=>{const ang=Math.PI/2+(k-(o.recv.length-1)/2)*.7;eDot(o.x+Math.cos(ang)*(R-3),o.y+Math.sin(ang)*(R-3),col,5)});
       continue;
     }
     drawPart(o.x,o.y,R,o.m,METALS[o.m].q,o.glow||0);
@@ -411,7 +434,7 @@ function draw(){
     ctx.fillStyle='#5a4200';ctx.font=`700 8px ${FONT}`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('e⁻',x,y+.5);
   }
   if(showL&&S.ev){
-    for(const A of S.ev.A)tag(A.x,A.y-R-12,'산화',A.col==='#e5484d'?'#e5484d':A.col);
+    if(!S.ev.cDone)for(const A of S.ev.A)tag(A.x,A.y-R-12,'산화',A.col);
     for(const o of S.ev.ions)tag(o.x,o.y-R-12,'환원','#2f6fed');
   }
   if($('#showP').checked)drawPlateTags();
