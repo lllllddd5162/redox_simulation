@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>프린트 문제 열기</title>
+<style>body{font-family:system-ui,"Noto Sans KR",sans-serif;background:#f3f5f9;color:#1c2333;margin:0;padding:40px 16px;text-align:center}
+a{color:#2f6fed}</style></head>
+<body><p id="m">문제 모형을 여는 중…</p>
+<script>
+/* 프린트 QR 코드 → 시뮬레이션 주소. 프린트를 다시 찍지 않고 여기서 연결 대상을 바꿀 수 있어요. */
+const MAP={
+"P1-A": "index.html?q=P1-A",
+"P1-B1": "lab.html?m=Mg:2,Ag:1&s=iAg6,mMg!&q=P1-B1",
+"P1-B2": "lab.html?m=Mg:2,Al:3&s=iAl4,mMg!&q=P1-B2",
+"P1-B3": "index.html?plate=Zn&sol=H&q=P1-B3",
+"P1-B4": "lab.html?m=Al:3,Cu:2&s=iCu6,mAl2&q=P1-B4",
+"P1-B5": "lab.html?m=Zn:2,Cu:2,Ag:1&s=iAg6,mCu!,mZn!&q=P1-B5",
+"P1-B6": "lab.html?m=X:x:3,Cu:2&s=iCu6,mX!&c=1_tot_4&q=P1-B6",
+"P1-B7": "lab.html?m=Zn:2,Cu:2,Ag:1&s=iAg4,iCu2,mZn2,mZn2&q=P1-B7",
+"P1-C1": "index.html?plate=Mg&sol=Cu&q=P1-C1",
+"P1-C2": "index.html?plate=Al&sol=Ag&q=P1-C2",
+"P1-C3": "index.html?plate=Zn&sol=H&q=P1-C3",
+"P1-D2": "index.html?plate=Mg&sol=Cu&q=P1-D2",
+"P1-D3": "index.html?plate=Zn&sol=H&q=P1-D3",
+"P1-D4": "index.html?plate=Zn&sol=Ag&q=P1-D4",
+"P1-D5": "lab.html?m=Cu:2,Ag:1&s=iAg6,mCu!&q=P1-D5",
+"P1-D6": "lab.html?m=B:2,C:1&s=iC6,mB!&q=P1-D6",
+"P1-D7": "lab.html?m=A:a:2,B:1&s=iB6,mA1,mA1,mA2&c=1_tot_5,2_tot_4,3_tot_3&q=P1-D7",
+"P1-D8": "lab.html?m=Y:m:3,X:2&s=iX8,mY2&c=1_ion:X_5&q=P1-D8",
+"P2-s1": "index.html?plate=Al&sol=H&q=P2-s1",
+"P2-oR06": "index.html?plate=Zn&sol=Cu&q=P2-oR06",
+"P2-s2": "index.html?plate=Al&sol=Cu&q=P2-s2",
+"P2-oR07": "index.html?plate=Cu&sol=Ag&q=P2-oR07",
+"P2-s3": "index.html?plate=Zn&sol=Ag&q=P2-s3",
+"P2-oS05": "index.html?plate=Cu&sol=Ag&q=P2-oS05",
+"P2-s4": "index.html?plate=Mg&sol=Cu&q=P2-s4",
+"P2-oS06": "lab.html?m=B:b:2,A:a:1&s=iA8,mB2,mB1&c=1_tot_6,2_tot_5&q=P2-oS06",
+"P2-s5": "lab.html?m=A:a:3,B:1&s=iB9,mA1,mA1,mA2&c=1_tot_7,2_tot_5&q=P2-s5",
+"P2-oS07": "lab.html?m=C:c:2,A:2&s=iA6,mC!&c=1_tot_6&q=P2-oS07",
+"P2-s6": "lab.html?m=C:c:2,A:3&s=iA6,mC!&q=P2-s6",
+"P2-oS09": "lab.html?m=Z:z:3,Y:2&s=iY6,mZ!&q=P2-oS09",
+"P2-s7": "lab.html?m=Y:y:2,X:2&s=iX6,mY!&c=1_tot_6&q=P2-s7",
+"P2-oS10": "index.html?plate=Fe&sol=Ag&q=P2-oS10",
+"P2-s8": "index.html?plate=Al&sol=Cu&q=P2-s8",
+"P3-oU18": "lab.html?m=Z:z:3,Y:y:2,X:x:1&s=iX6,mY!,mZ!&c=1_tot_3,2_tot_2&q=P3-oU18",
+"P3-s1": "lab.html?m=Z:z:2,Y:y:3,X:x:1&s=iX6,mY!,mZ!&c=1_tot_2,2_tot_3&q=P3-s1",
+"P3-s2": "lab.html?m=Z:z:2,Y:y:1,X:x:1&s=iX4,mY!,mZ!&c=1_tot_4,2_tot_2,2_ion:Y_0&q=P3-s2",
+"P3-oU19": "lab.html?m=Z:2,Y:m:3&s=iY3,mZ3&c=1_ion:Y_1&q=P3-oU19",
+"P3-s3": "lab.html?m=Z:n:3,Y:m:2&s=iY4,mZ2&c=1_ion:Y_1,1_ion:Z_2&q=P3-s3",
+"P3-s4": "lab.html?m=Y:m:3,X:2&s=iX6,mY2&c=1_ion:X_3&q=P3-s4",
+"P3-oU20": "lab.html?m=A:2,B:1&s=iB6,mA!&q=P3-oU20",
+"P3-s5": "lab.html?m=A:1,B:2&s=iB4,mA!&q=P3-s5",
+"P3-s6": "lab.html?m=A:2,B:3&s=iB4,mA!&q=P3-s6",
+"P3-oU21": "lab.html?m=Y:1,X:m:2&s=iX4,mY!&c=1_ion:Y_8&q=P3-oU21",
+"P3-s7": "lab.html?m=Y:2,X:m:3&s=iX6,mY!&c=1_ion:Y_9&q=P3-s7",
+"P3-s8": "lab.html?m=Y:1,X:m:2&s=iX4,mY2,mY6&c=1_tot_5,2_tot_8&q=P3-s8",
+"P4-oD24-11": "index.html?plate=Cu&sol=Ag&q=P4-oD24-11",
+"P4-s1": "index.html?plate=Zn&sol=Cu&q=P4-s1",
+"P4-s2": "index.html?plate=Mg&sol=Al&q=P4-s2",
+"P4-s3": "index.html?plate=Zn&sol=H&q=P4-s3",
+"P4-oD25-3": "index.html?plate=Cu&sol=Ag&q=P4-oD25-3",
+"P4-s4": "index.html?plate=Zn&sol=Ag&q=P4-s4",
+"P4-s5": "index.html?plate=Mg&sol=Cu&q=P4-s5",
+"P4-s6": "index.html?plate=Al&sol=Zn&q=P4-s6",
+"P4-oR07": "index.html?plate=Cu&sol=Ag&q=P4-oR07",
+"P4-s7": "index.html?plate=Al&sol=Cu&q=P4-s7",
+"P4-s8": "index.html?plate=Mg&sol=H&q=P4-s8",
+"P4-oS05": "index.html?plate=Cu&sol=Ag&q=P4-oS05",
+"P4-s9": "index.html?plate=Zn&sol=Cu&q=P4-s9",
+"P4-s10": "index.html?plate=Al&sol=Ag&q=P4-s10",
+"P5-oD25-4": "lab.html?m=Y:m:3,X:2&s=iX4,mY2&c=1_ion:X_1&q=P5-oD25-4",
+"P5-s1": "lab.html?m=Y:m:2,X:3&s=iX6,mY3&c=1_ion:X_4&q=P5-s1",
+"P5-s2": "lab.html?m=Y:m:3,X:1&s=iX6,mY1&c=1_ion:X_3&q=P5-s2",
+"P5-s3": "lab.html?m=Y:m:3,X:2&s=iX6,mY2&c=1_tot_5&q=P5-s3"
+};
+const k=decodeURIComponent(location.search.slice(1)).split('&')[0];
+if(MAP[k])location.replace(MAP[k]);
+else document.getElementById('m').innerHTML='알 수 없는 문제 코드예요: '+k.replace(/[<>&]/g,'')+'<br><br><a href="index.html">기본 실험으로 가기</a>';
+</script></body></html>
