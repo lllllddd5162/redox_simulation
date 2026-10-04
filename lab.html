@@ -87,6 +87,10 @@ td.l{text-align:left}
 .tip{font-size:13px;background:#fffbea;border:1px solid #f3e1a0;border-radius:10px;padding:8px 10px;margin-top:10px}
 @media(max-width:900px){.setup{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}}
 .tw{overflow-x:auto}
+
+.qbanner{display:none;margin:0 0 14px;padding:12px 16px;border-radius:14px;background:#fff7df;border:1.5px solid #e0b84c;color:#4a3a08;font-size:14.5px;line-height:1.55}
+.qbanner b{color:#8a5a00}
+.qbanner .qt{font-size:16px;font-weight:700;color:#1c2333;display:block;margin-bottom:2px}
 </style>
 </head>
 <body>
@@ -96,6 +100,7 @@ td.l{text-align:left}
   <p>문제에 나온 이온과 금속을 직접 넣고, 과정마다 양이온 수가 어떻게 변하는지 눈으로 확인해 보세요.</p>
 </header>
 <main>
+  <div class="qbanner" id="qbanner"></div>
   <section class="card setup">
     <div>
       <h2>① 금속 목록 <small>반응성 1위가 가장 커요(전자를 잃기 쉬움)</small></h2>
@@ -729,6 +734,42 @@ function loop(now){
   requestAnimationFrame(loop);
 }
 buildSetup();initState();renderLog();renderCmp();
+
+function qTitle(q){if(!q)return'프린트 문제';q=q.replace(/[<>&]/g,'');
+  const r=/^P(\d)-(o|s|[A-D])(.*)$/.exec(q);if(!r)return q;
+  const SRC={R:'EBS 실력 향상 ',S:'EBS 수능 유형 ',U:'EBS 대단원 마무리 ',D:'도선고 기출 '};
+  const k=r[2]==='o'?'원본 · '+(SRC[r[3][0]]?SRC[r[3][0]]+r[3].slice(1):r[3])+'번'
+         :r[2]==='s'?'유사 문항 '+r[3]:'예제 '+r[2]+(r[3]?' '+r[3]+'번':'');
+  return `프린트 Part ${r[1]} · ${k}`}
+/* ---------- 프린트 QR 연결 ----------
+   lab.html?m=Y:m:3,X:2&s=iX4,mY2&c=1_ion:X_1&N=2&q=문제 이름
+   m : 반응성 큰 순서로 '이름:전하[:시험값]'  (전하에 문자를 쓰면 미지수)
+   s : 넣는 순서대로 'i이름개수'(이온 수용액) / 'm이름개수'(고체 금속), 개수 대신 '!'는 충분한 양 (개수는 N 단위)
+   c : 미지수 조건 '과정번호_항목_값'  항목 = tot | ion:X | solid:X  (과정번호는 0부터)        */
+(function(){
+  const Q=new URLSearchParams(location.search);
+  if(!Q.get('m')||!Q.get('s'))return;
+  try{
+    const mets=Q.get('m').split(',').map((t,i)=>{const [name,q,test]=t.split(':');
+      return{name,q,ci:i,test:/^[a-z]$/.test(q)?(+test||2):2}});
+    const steps=Q.get('s').split(',').map(t=>{const r=/^([im])([A-Z][a-z0-9]?)(!|\d+(?:\.\d+)?)$/.exec(t);
+      if(!r)throw new Error('step '+t);return{type:r[1]==='i'?'ion':'metal',m:r[2],ex:r[3]==='!',v:r[3]==='!'?0:+r[3]}});
+    METS=mets;CFG.N=+(Q.get('N')||2);
+    if(Q.get('u'))UMAX=+Q.get('u');
+    COND=(Q.get('c')||'').split(',').filter(Boolean).map(t=>{const [p,k,v]=t.split('_');return{p:+p,k,v:+v}});
+    buildSetup();resetAll('');
+    steps.forEach(st=>S.queue.push({type:st.type,m:st.m,n:Math.round(st.v*CFG.N),ex:st.ex}));
+    renderQueue();renderCmp();
+    const q=qTitle(Q.get('q'));
+    const desc=steps.map((st,i)=>`${LABELS[i]} ${st.type==='ion'?ionH(st.m)+' 수용액 '+(st.v===1?'':st.v)+'N':'금속 '+st.m+' '+(st.ex?'충분한 양':(st.v===1?'':st.v)+'N')}`).join(' → ');
+    const unk=unknowns();
+    const b=document.getElementById('qbanner');
+    b.innerHTML=`<span class="qt">📄 ${q}</span>${desc}<br>`+
+      (unk.length?`미지수 <b>${unk.join(', ')}</b>는 문제 조건을 아래 <b>미지수 경우 비교</b>에 넣어 두었어요. 초록 줄이 조건을 만족하는 경우예요.`:
+                  `과정이 하나씩 진행돼요. <b>과정별 결과</b> 표를 문제의 표와 비교해 보세요.`);
+    b.style.display='block';
+  }catch(e){$('#msg').textContent='QR 주소를 읽지 못했어요: '+e.message}
+})();
 requestAnimationFrame(loop);
 </script>
 </body>
