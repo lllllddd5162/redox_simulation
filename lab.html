@@ -718,9 +718,10 @@ $('#addBtn').onclick=()=>{
   renderCmp();
   renderQueue();
 };
-$('#runBtn').onclick=()=>{S.running=!S.running;S.pauseAfter=false;$('#runBtn').textContent=S.running?'⏸ 일시정지':'▶ 실행'};
+$('#runBtn').onclick=()=>{if(!S.running&&isEmpty()){startRun();return}S.running=!S.running;S.pauseAfter=false;$('#runBtn').textContent=S.running?'⏸ 일시정지':'▶ 실행'};
 $('#stepBtn').onclick=()=>{
   if(S.ev){S.running=true;S.pauseAfter=true;return}
+  if(isEmpty())$('#loadBtn').onclick();
   if(!S.cur&&S.queue.length){applyProcess(S.queue.shift());renderQueue()}
   if(!S.cur){$('#msg').textContent='먼저 ④에서 무언가를 넣어 주세요.';return}
   const pr=pickPair();const sn=pr?snap():null;
@@ -738,7 +739,8 @@ $('#cAdd').onclick=()=>{const v=+$('#cV').value;if(!(v>=0)||$('#cP').value==='')
   if(Math.abs(v*CFG.N-Math.round(v*CFG.N))>1e-9){$('#msg').textContent=`${v}N은 지금 N 단위로 나타낼 수 없어요. ②에서 N을 키워 주세요.`;return}
   COND.push({p:+$('#cP').value,k:$('#cK').value,v});$('#msg').textContent='';renderCmp()};
 $('#uMax').onchange=e=>{UMAX=+e.target.value;renderCmp()};
-function startRun(){S.running=true;S.pauseAfter=false;$('#runBtn').textContent='⏸ 일시정지';$('#startOv').classList.remove('on')}
+const isEmpty=()=>!S.queue.length&&!S.cur&&!S.ev&&!S.procs.length&&!S.log.length;
+function startRun(){if(isEmpty())$('#loadBtn').onclick();S.running=true;S.pauseAfter=false;$('#runBtn').textContent='⏸ 일시정지';$('#startOv').classList.remove('on')}
 $('#startBtn').onclick=startRun;
 $('#speed').value=speed;
 $('#speed').oninput=e=>speed=+e.target.value;
@@ -769,8 +771,9 @@ function loop(now){
   if(S.running)step(dt*speed);
   draw();
   if(now-lastUI>150){renderNow();updateStatus();$('#againBtn').disabled=!S.snap;
-    const ov=!S.running&&!S.ev&&(S.queue.length>0||!!S.cur);$('#startOv').classList.toggle('on',ov);
-    if(ov){const q=S.queue.map(p=>p.type==='ion'?`${p.m}${supL(p.m)} ${fmtN(p.n)}`:`금속 ${p.m} ${p.ex?'충분한 양':fmtN(p.n)}`);$('#startSub').textContent=q.length?'넣을 것: '+q.join(' → '):'이어서 진행'}
+    const emp=isEmpty();const ov=(!S.running&&!S.ev&&(S.queue.length>0||!!S.cur))||emp;$('#startOv').classList.toggle('on',ov);
+    if(ov&&emp){const pn=PRESETS[+$('#preset').value||0].name.split(' · ')[0];$('#startSub').textContent=`비커가 비어 있어요 · 누르면 ${pn}로 시작 (직접 넣으려면 ④)`}
+    else if(ov){const q=S.queue.map(p=>p.type==='ion'?`${p.m}${supL(p.m)} ${fmtN(p.n)}`:`금속 ${p.m} ${p.ex?'충분한 양':fmtN(p.n)}`);$('#startSub').textContent=q.length?'넣을 것: '+q.join(' → '):'이어서 진행'}
     lastUI=now}
   }catch(e){if(!loop.err){loop.err=1;showErr(e)}}
 }
