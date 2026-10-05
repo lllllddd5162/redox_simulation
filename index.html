@@ -71,10 +71,6 @@ ul.obs li{margin:3px 0}
 .ebox{background:#fffbea;border-color:#f3e1a0}
 .note{font-size:12px;color:var(--sub);margin-top:10px}
 @media(max-width:820px){.stage{grid-template-columns:1fr}#beaker{max-width:240px;margin:0 auto}.grid2{grid-template-columns:1fr}.half{grid-template-columns:1fr}}
-
-.qbanner{display:none;margin:0 0 14px;padding:12px 16px;border-radius:14px;background:#fff7df;border:1.5px solid #e0b84c;color:#4a3a08;font-size:14.5px;line-height:1.55}
-.qbanner b{color:#8a5a00}
-.qbanner .qt{font-size:16px;font-weight:700;color:#1c2333;display:block;margin-bottom:2px}
 </style>
 </head>
 <body>
@@ -84,7 +80,6 @@ ul.obs li{margin:3px 0}
   <p>금속판을 이온이 들어 있는 수용액에 넣으면, 입자 수준에서 어떤 일이 일어날까요?</p>
 </header>
 <main>
-  <div class="qbanner" id="qbanner"></div>
   <section class="card">
     <div class="stage">
       <svg id="beaker" viewBox="0 0 300 380" aria-label="비커">
@@ -112,10 +107,13 @@ ul.obs li{margin:3px 0}
       <label>수용액 <select id="solSel"></select></label>
       <button class="btn run" id="runBtn">▶ 실행</button>
       <button class="btn ghost" id="stepBtn">⏭ 1단위 반응</button>
+      <button class="btn ghost" id="againBtn" disabled>⟲ 직전 반응 다시 보기</button>
+      <button class="btn ghost" id="restartBtn">⏮ 처음부터 다시 재생</button>
       <button class="btn ghost" id="resetBtn">↺ 처음으로</button>
-      <label>속도 <input type="range" id="speed" min="0.3" max="3" step="0.1" value="1"></label>
+      <label>속도 <input type="range" id="speed" min="0.2" max="2" step="0.1" value="0.6"></label>
       <label><input type="checkbox" id="showE" checked> 전자</label>
       <label><input type="checkbox" id="showL" checked> 산화·환원 표시</label>
+      <label><input type="checkbox" id="showB" checked> 설명 상자</label>
       <label><input type="checkbox" id="showP" checked> 금속판 경계선</label>
     </div>
     <div class="legend">
@@ -190,26 +188,6 @@ const plateSel=$('#plateSel'), solSel=$('#solSel');
 PLATES.forEach(m=>plateSel.add(new Option(`${METALS[m].name} (${m})`,m)));
 SOLS.forEach(m=>solSel.add(new Option(`${METALS[m].salt} (${m}${supU(METALS[m].q)})`,m)));
 plateSel.value='Cu'; solSel.value='Ag';
-function qTitle(q){if(!q)return'프린트 문제';q=q.replace(/[<>&]/g,'');
-  const r=/^P(\d)-(o|s|[A-D])(.*)$/.exec(q);if(!r)return q;
-  const SRC={R:'EBS 실력 향상 ',S:'EBS 수능 유형 ',U:'EBS 대단원 마무리 ',D:'도선고 기출 '};
-  const k=r[2]==='o'?'원본 · '+(SRC[r[3][0]]?SRC[r[3][0]]+r[3].slice(1):r[3])+'번'
-         :r[2]==='s'?'유사 문항 '+r[3]:'예제 '+r[2]+(r[3]?' '+r[3]+'번':'');
-  return `프린트 Part ${r[1]} · ${k}`}
-/* ---------- 프린트 QR 연결: index.html?plate=Zn&sol=Cu&q=문제 이름 ---------- */
-const QP=new URLSearchParams(location.search);
-(function(){
-  const pl=QP.get('plate'),so=QP.get('sol'),q=QP.get('q');
-  if(pl&&PLATES.includes(pl))plateSel.value=pl;
-  if(so&&SOLS.includes(so))solSel.value=so;
-  if(q||pl||so){
-    const b=document.getElementById('qbanner');
-    b.innerHTML=`<span class="qt">📄 ${qTitle(q)}</span>`+
-      `<b>${METALS[plateSel.value].name}판</b>을 <b>${METALS[solSel.value].salt} 수용액</b>에 넣은 모형이에요. `+
-      `금속판에서 무엇이 녹아 나가고, 무엇이 붙는지 보세요. 금속판·수용액을 바꿔 다른 경우도 확인할 수 있어요.`;
-    b.style.display='block';
-  }
-})();
 
 /* ---------- 캔버스 ---------- */
 const cv=$('#sim'),ctx=cv.getContext('2d'),chc=$('#chart'),chx=chc.getContext('2d');
@@ -226,7 +204,8 @@ for(let r=0;r<ROWS;r++){NB[r]=[];for(let c=0;c<=MAXC;c++){
 }}
 
 /* ---------- 시뮬레이션 상태 ---------- */
-let S, predicted=null, speed=1;
+const MOBILE=window.matchMedia&&matchMedia('(max-width:760px), (pointer:coarse)').matches;
+let S, predicted=null, speed=MOBILE?.45:.6;
 function initSim(){
   const pm=plateSel.value, im=solSel.value;
   S={pm,im,cells:[],res:[],ions:[],elec:[],bubbles:[],ev:null,banner:null,t:0,
@@ -312,7 +291,7 @@ function startEvent(seed,anchor){
   });
   // 같은 줄에서 대기하면 겹치지 않게 조금씩 비켜 세움
   ions.forEach((o,i)=>ions.slice(0,i).forEach(p=>{if(Math.hypot(p.sx-o.sx,p.sy-o.sy)<2*R)o.sx+=2*R}));
-  const eTot=cM*a,eDur=.7,gap=eDur+.2,tA=1.2;
+  const eTot=cM*a,eDur=.9,gap=eDur+.3,tA=1.4;
   for(let g=0;g<eTot;g++){
     const src=A[Math.floor(g/a)],dst=ions[Math.floor(g/METALS[S.im].q)];
     S.elec.push({src,dst,ang:(g%a)/a*Math.PI*2-Math.PI/2,t:-(tA+g*gap),dur:eDur,col:src.col});
@@ -342,7 +321,7 @@ function finishEvent(){
   S.ions.forEach(o=>o.mine=false);
   S.eLost+=ev.cM*a;S.eGain+=ev.cI*b;S.oxN+=ev.cM;S.redN+=ev.cI;S.units++;
   S.banner={cM:ev.cM,cI:ev.cI,eTot:ev.eTot,n:ev.n,t:0};
-  S.cool=1.8;
+  S.cool=2.6;
   S.ev=null;
   if(S.pauseAfter){S.running=false;S.pauseAfter=false;$('#runBtn').textContent='▶ 실행'}
 }
@@ -381,7 +360,7 @@ function step(dt){
     if(d<2*R){const p=(2*R-d)/2,nx=dx/d,ny=dy/d;a.x-=nx*p;a.y-=ny*p;b.x+=nx*p;b.y+=ny*p}
   }
   // 한 반응이 끝나고 쉬는 시간이 지나면 다음 반응 1단위 시작
-  if(!S.ev){S.cool-=dt;if(S.cool<=0&&canReact&&!S.pauseAfter){const free=S.ions.filter(o=>o.state==='free'&&o.m===S.im);if(free.length){const sd=free.sort((p,q)=>p.x-q.x)[0];if(!startEvent(sd,surfaceAnchor(sd.y)))S.cool=.5}}}
+  if(!S.ev){S.cool-=dt;if(S.cool<=0&&canReact&&!S.pauseAfter){const free=S.ions.filter(o=>o.state==='free'&&o.m===S.im);if(free.length){const sd=free.sort((p,q)=>p.x-q.x)[0];const sn=snap();if(startEvent(sd,surfaceAnchor(sd.y)))S.snap=sn;else S.cool=.5}}}
   if(S.ev){
     const ev=S.ev;ev.t+=dt;
     const sm=k=>{k=Math.max(0,Math.min(1,k));return k*k*(3-2*k)};
@@ -428,7 +407,7 @@ function eDot(x,y,col,r=5.5){
 }
 function tag(x,y,txt,col){
   ctx.font=`700 11px ${FONT}`;const w=ctx.measureText(txt).width+10;
-  ctx.fillStyle='rgba(255,255,255,.92)';ctx.strokeStyle=col;ctx.lineWidth=1.2;
+  ctx.fillStyle='rgba(255,255,255,.55)';ctx.strokeStyle=col;ctx.lineWidth=1.2;
   ctx.beginPath();ctx.roundRect(x-w/2,y-8,w,16,8);ctx.fill();ctx.stroke();
   ctx.fillStyle=col;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,x,y+.5);
 }
@@ -493,7 +472,9 @@ function drawPlateTags(){
   const y=H-16;tag(PX-36,y,'금속판','#5d6678');tag(PX+40,y,'수용액','#0e7490');
   ctx.save();ctx.translate(PX+10,H/2);ctx.rotate(-Math.PI/2);ctx.fillStyle='#5d6678';ctx.font=`500 11px ${FONT}`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('처음 금속판 표면',0,0);ctx.restore();
 }
+function htext(t,x,y){ctx.save();ctx.lineJoin='round';ctx.lineWidth=3.5;ctx.strokeStyle='rgba(255,255,255,.85)';ctx.strokeText(t,x,y);ctx.restore();ctx.fillText(t,x,y)}
 function drawBanner(){
+  if(!$('#showB').checked)return;
   const ev=S.ev||S.banner;if(!ev)return;
   let alpha=1;if(!S.ev){alpha=1-Math.max(0,S.banner.t-1.6)/.4;if(alpha<=0){S.banner=null;return}}
   const a=METALS[S.pm].q,b=METALS[S.im].q,done=S.ev?S.ev.eDone:ev.eTot;
@@ -505,12 +486,12 @@ function drawBanner(){
   ctx.font=`500 13px ${FONT}`;
   const L0=`반응 ${ev.n}번째`+(S.ev?' · 진행 중':' · 완료');
   const w=Math.max(ctx.measureText(L1).width,ctx.measureText(L2).width,ctx.measureText(L3).width+ev.eTot*14+10)+24,h=100,x=W-w-10,y=10;
-  ctx.fillStyle='rgba(255,255,255,.94)';ctx.strokeStyle='#d6dbe4';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(x,y,w,h,10);ctx.fill();ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,.5)';ctx.strokeStyle='rgba(150,160,175,.6)';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(x,y,w,h,10);ctx.fill();ctx.stroke();
   ctx.textAlign='left';ctx.textBaseline='middle';
-  ctx.fillStyle='#1c2333';ctx.font=`700 13px ${FONT}`;ctx.fillText(L0,x+12,y+16);
-  ctx.fillStyle='#e5484d';ctx.fillText(L1,x+12,y+38);
-  ctx.fillStyle='#2f6fed';ctx.fillText(L2,x+12,y+60);
-  ctx.fillStyle='#333';ctx.font=`500 13px ${FONT}`;ctx.fillText(L3,x+12,y+82);
+  ctx.fillStyle='#1c2333';ctx.font=`700 13px ${FONT}`;htext(L0,x+12,y+16);
+  ctx.fillStyle='#e5484d';htext(L1,x+12,y+38);
+  ctx.fillStyle='#2f6fed';htext(L2,x+12,y+60);
+  ctx.fillStyle='#333';ctx.font=`500 13px ${FONT}`;htext(L3,x+12,y+82);
   const w3=ctx.measureText(L3).width;
   for(let k=0;k<ev.eTot;k++){const dx=x+12+w3+14+k*14,dy=y+82;ctx.beginPath();ctx.arc(dx,dy,5,0,7);ctx.fillStyle=k<done?'#ffd23f':'#eef0f4';ctx.fill();ctx.strokeStyle='#a87b00';ctx.lineWidth=1;ctx.stroke()}
   ctx.globalAlpha=1;
@@ -553,6 +534,7 @@ function updateUI(now){
   else if(ok&&!S.ev&&a<ratio(S.pm,S.im).cI&&S.units){st.style.display='block';st.textContent='반응 완료! 용액 속 '+S.im+supU(I.q)+' 이온이 모두 반응했어요'}
   else st.style.display='none';
   drawChart();
+  $('#againBtn').disabled=!S.snap;
 }
 function drawChart(){
   const w=360,h=150,g=chx,pad={l:28,r:8,t:8,b:20};g.clearRect(0,0,w,h);
@@ -631,9 +613,22 @@ $('#stepBtn').onclick=()=>{
   if(!reactive()){S.running=true;S.pauseAfter=false;$('#runBtn').textContent='⏸ 일시정지';renderInfo();return}
   if(!free.length)return;
   const seed=free.sort((p,q)=>p.x-q.x)[0];
-  if(startEvent(seed,surfaceAnchor(seed.y))){S.running=true;S.pauseAfter=true;$('#runBtn').textContent='⏸ 일시정지';renderInfo()}
+  const sn=snap();
+  if(startEvent(seed,surfaceAnchor(seed.y))){S.snap=sn;S.running=true;S.pauseAfter=true;$('#runBtn').textContent='⏸ 일시정지';renderInfo()}
 };
+$('#speed').value=speed;
 $('#speed').oninput=e=>speed=+e.target.value;
+/* ---------- 다시 보기 ---------- */
+const SNAPK=['t','cells','res','ions','eLost','eGain','oxN','redN','units','dep','h2','lastH2','hist'];
+function snap(){const o={};SNAPK.forEach(k=>o[k]=S[k]);return JSON.stringify(o)}
+$('#againBtn').onclick=()=>{
+  if(!S.snap)return;
+  Object.assign(S,JSON.parse(S.snap));S.ev=null;S.elec=[];S.bubbles=[];S.banner=null;
+  const free=S.ions.filter(o=>o.state==='free'&&o.m===S.im);if(!free.length)return;
+  const seed=free.sort((p,q)=>p.x-q.x)[0];const sn=S.snap;
+  if(startEvent(seed,surfaceAnchor(seed.y))){S.snap=sn;S.running=true;S.pauseAfter=true;$('#runBtn').textContent='⏸ 일시정지'}
+};
+$('#restartBtn').onclick=()=>{const p=predicted;initSim();predicted=p;S.running=true;$('#runBtn').textContent='⏸ 일시정지';renderSeries();renderInfo()};
 
 let last=performance.now();
 function loop(now){
@@ -644,7 +639,6 @@ function loop(now){
   requestAnimationFrame(loop);
 }
 resetAll();
-if(QP.get('plate')||QP.get('sol')){S.running=true;$('#runBtn').textContent='⏸ 일시정지';renderInfo()}
 requestAnimationFrame(loop);
 </script>
 </body>
