@@ -89,6 +89,13 @@ td.l{text-align:left}
 main>*,.setup>*,.grid2>*{min-width:0}
 @media(max-width:600px){.mrow{flex-wrap:wrap;white-space:normal;row-gap:4px;padding-bottom:6px;border-bottom:1px dashed var(--line)}.addrow{gap:6px}.ctrl .btn{padding:7px 10px;font-size:13px}}
 .tw{overflow-x:auto}
+
+.startOv{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(255,255,255,.35);z-index:3}
+.startOv.on{display:flex}
+.startOv button{border:none;border-radius:999px;background:#1c2333;color:#fff;font-size:20px;font-weight:700;padding:14px 30px;box-shadow:0 6px 18px rgba(28,35,51,.25);cursor:pointer}
+.startOv button:active{transform:scale(.97)}
+.startOv .sub{font-size:13px;color:#1c2333;background:rgba(255,255,255,.85);border-radius:999px;padding:3px 12px}
+@media(max-width:600px){.startOv button{font-size:18px;padding:12px 24px}}
 </style>
 </head>
 <body>
@@ -116,7 +123,7 @@ main>*,.setup>*,.grid2>*{min-width:0}
   </section>
 
   <section class="card">
-    <div class="simwrap"><canvas id="sim"></canvas><div class="status" id="status"></div></div>
+    <div class="simwrap"><canvas id="sim"></canvas><div class="status" id="status"></div><div class="startOv" id="startOv"><button id="startBtn" type="button">▶ 반응 시작</button><div class="sub" id="startSub"></div></div></div>
     <div class="addrow">
       <b>④ 비커에 넣기</b>
       <select id="pType"><option value="ion">금속 양이온 수용액</option><option value="metal">고체 금속</option></select>
@@ -284,10 +291,10 @@ const FONT='"Noto Sans KR",sans-serif';
 const MOBILE=window.matchMedia&&matchMedia('(max-width:760px), (pointer:coarse)').matches;
 let S,speed=MOBILE?.6:.75;
 function initState(){
-  S={cells:[],res:[],ions:[],elec:[],ev:null,banner:null,t:0,cool:.4,running:true,pauseAfter:false,
+  S={cells:[],res:[],ions:[],elec:[],ev:null,banner:null,t:0,cool:.4,running:false,pauseAfter:false,
      queue:[],procs:[],added:{},note:null,cur:null,log:[],units:0,instant:false};
   for(let r=0;r<PR;r++){S.cells[r]=Array(PC).fill(null);S.res[r]=Array(PC).fill(false)}
-  $('#runBtn').textContent='⏸ 일시정지';
+  $('#runBtn').textContent='▶ 실행';
 }
 function resetAll(note){initState();$('#msg').textContent=note||'';renderLog();renderCmp()}
 
@@ -709,7 +716,6 @@ $('#addBtn').onclick=()=>{
   $('#msg').textContent='';
   S.queue.push({type,m,n,ex});
   renderCmp();
-  if(!S.running){S.running=true;$('#runBtn').textContent='⏸ 일시정지'}
   renderQueue();
 };
 $('#runBtn').onclick=()=>{S.running=!S.running;S.pauseAfter=false;$('#runBtn').textContent=S.running?'⏸ 일시정지':'▶ 실행'};
@@ -732,6 +738,8 @@ $('#cAdd').onclick=()=>{const v=+$('#cV').value;if(!(v>=0)||$('#cP').value==='')
   if(Math.abs(v*CFG.N-Math.round(v*CFG.N))>1e-9){$('#msg').textContent=`${v}N은 지금 N 단위로 나타낼 수 없어요. ②에서 N을 키워 주세요.`;return}
   COND.push({p:+$('#cP').value,k:$('#cK').value,v});$('#msg').textContent='';renderCmp()};
 $('#uMax').onchange=e=>{UMAX=+e.target.value;renderCmp()};
+function startRun(){S.running=true;S.pauseAfter=false;$('#runBtn').textContent='⏸ 일시정지';$('#startOv').classList.remove('on')}
+$('#startBtn').onclick=startRun;
 $('#speed').value=speed;
 $('#speed').oninput=e=>speed=+e.target.value;
 /* ---------- 다시 보기 ---------- */
@@ -746,7 +754,7 @@ $('#againBtn').onclick=()=>{
   const pr=pickPair();
   if(pr&&startUnit(pr)){S.snap=sn;S.running=true;S.pauseAfter=true;$('#runBtn').textContent='⏸ 일시정지';$('#msg').textContent='직전 반응을 다시 보여줘요. ▶ 실행을 누르면 이어서 진행해요.'}
 };
-$('#restartBtn').onclick=()=>{if(!S.procs.length&&!S.queue.length){$('#msg').textContent='먼저 ④에서 무언가를 넣어 주세요.';return}replay('처음부터 다시 재생해요.')};
+$('#restartBtn').onclick=()=>{if(!S.procs.length&&!S.queue.length){$('#msg').textContent='먼저 ④에서 무언가를 넣어 주세요.';return}replay('처음부터 다시 재생해요.');startRun()};
 $('#loadBtn').onclick=()=>{
   const p=PRESETS[+$('#preset').value];
   COND=[];METS=p.metals.map(([name,q],i)=>({name,q,ci:i,test:2}));CFG.N=p.N;buildSetup();resetAll(`예제를 불러왔어요: ${p.name}`);
@@ -760,7 +768,10 @@ function loop(now){
   const dt=Math.min(.05,(now-last)/1000);last=now;
   if(S.running)step(dt*speed);
   draw();
-  if(now-lastUI>150){renderNow();updateStatus();$('#againBtn').disabled=!S.snap;lastUI=now}
+  if(now-lastUI>150){renderNow();updateStatus();$('#againBtn').disabled=!S.snap;
+    const ov=!S.running&&!S.ev&&(S.queue.length>0||!!S.cur);$('#startOv').classList.toggle('on',ov);
+    if(ov){const q=S.queue.map(p=>p.type==='ion'?`${p.m}${supL(p.m)} ${fmtN(p.n)}`:`금속 ${p.m} ${p.ex?'충분한 양':fmtN(p.n)}`);$('#startSub').textContent=q.length?'넣을 것: '+q.join(' → '):'이어서 진행'}
+    lastUI=now}
   }catch(e){if(!loop.err){loop.err=1;showErr(e)}}
 }
 buildSetup();initState();renderLog();renderCmp();
