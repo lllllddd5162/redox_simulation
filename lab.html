@@ -86,6 +86,8 @@ td.l{text-align:left}
 .empty{color:var(--sub);font-size:13.5px;text-align:center;padding:14px}
 .tip{font-size:13px;background:#fffbea;border:1px solid #f3e1a0;border-radius:10px;padding:8px 10px;margin-top:10px}
 @media(max-width:900px){.setup{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}}
+main>*,.setup>*,.grid2>*{min-width:0}
+@media(max-width:600px){.mrow{flex-wrap:wrap;white-space:normal;row-gap:4px;padding-bottom:6px;border-bottom:1px dashed var(--line)}.addrow{gap:6px}.ctrl .btn{padding:7px 10px;font-size:13px}}
 .tw{overflow-x:auto}
 </style>
 </head>
@@ -170,6 +172,17 @@ td.l{text-align:left}
 </main>
 
 <script>
+/* ---------- 구형 모바일 브라우저(카카오톡·네이버 앱 내 브라우저, iOS 15 이하 등) 호환 ---------- */
+if(window.CanvasRenderingContext2D&&!CanvasRenderingContext2D.prototype.roundRect){
+  CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){
+    r=Math.max(0,Math.min(typeof r==='number'?r:0,w/2,h/2));
+    this.moveTo(x+r,y);this.lineTo(x+w-r,y);this.arcTo(x+w,y,x+w,y+r,r);this.lineTo(x+w,y+h-r);this.arcTo(x+w,y+h,x+w-r,y+h,r);
+    this.lineTo(x+r,y+h);this.arcTo(x,y+h,x,y+h-r,r);this.lineTo(x,y+r);this.arcTo(x,y,x+r,y,r);this.closePath();return this};
+}
+if(!Array.prototype.at)Array.prototype.at=function(i){i=Math.trunc(i)||0;if(i<0)i+=this.length;return this[i]};
+function showErr(e){var d=document.getElementById('jsErr');if(!d){d=document.createElement('div');d.id='jsErr';d.style.cssText='position:fixed;left:8px;right:8px;bottom:8px;z-index:99;background:#fde8e8;color:#9b1c1c;border:1px solid #f5c2c3;border-radius:10px;padding:8px 10px;font-size:12px';document.body.appendChild(d)}d.textContent='오류: '+(e&&e.message||e)+' (이 화면을 캡처해서 알려 주세요)'}
+window.addEventListener('error',function(ev){showErr(ev.error||ev.message)});
+
 /* ---------- 설정 ---------- */
 const $=s=>document.querySelector(s);
 const PAL=[{fill:'#fbd0a0',txt:'#4a2a08'},{fill:'#b4d2ff',txt:'#0f2a55'},{fill:'#c3e8b2',txt:'#1b4510'},{fill:'#f6bfd5',txt:'#5a1030'},{fill:'#d9c8f5',txt:'#2e1660'},{fill:'#f3e59a',txt:'#4a3f05'}];
@@ -269,7 +282,7 @@ const ZT=PY0-PR*D+D/2; // 고체 금속 칸 경계(점선)
 const FONT='"Noto Sans KR",sans-serif';
 
 const MOBILE=window.matchMedia&&matchMedia('(max-width:760px), (pointer:coarse)').matches;
-let S,speed=MOBILE?.5:.7;
+let S,speed=MOBILE?.6:.75;
 function initState(){
   S={cells:[],res:[],ions:[],elec:[],ev:null,banner:null,t:0,cool:.4,running:true,pauseAfter:false,
      queue:[],procs:[],added:{},note:null,cur:null,log:[],units:0,instant:false};
@@ -742,11 +755,13 @@ $('#loadBtn').onclick=()=>{
 
 let last=performance.now(),lastUI=0;
 function loop(now){
+  requestAnimationFrame(loop);
+  try{
   const dt=Math.min(.05,(now-last)/1000);last=now;
   if(S.running)step(dt*speed);
   draw();
   if(now-lastUI>150){renderNow();updateStatus();$('#againBtn').disabled=!S.snap;lastUI=now}
-  requestAnimationFrame(loop);
+  }catch(e){if(!loop.err){loop.err=1;showErr(e)}}
 }
 buildSetup();initState();renderLog();renderCmp();
 requestAnimationFrame(loop);
