@@ -196,7 +196,11 @@ const PAL=[{fill:'#fbd0a0',txt:'#4a2a08'},{fill:'#b4d2ff',txt:'#0f2a55'},{fill:'
 const ECOL=['#e5484d','#16a34a','#7c3aed','#ea580c','#0891b2','#db2777'];
 /* METS: 반응성 큰 순서. q = '2' 같은 숫자 또는 'a' 같은 미지수, test = 미지수일 때 애니메이션에 쓰는 값 */
 let METS=[{name:'B',q:'3',ci:1,test:2},{name:'A',q:'2',ci:0,test:2},{name:'C',q:'1',ci:2,test:2}];
-const CFG={N:2};
+/* N 기본값: QR(휴대폰)으로 열면 1, 주소에 ?n=2 처럼 쓰면 그 값 */
+const URLN=(()=>{const m=location.search.match(/[?&]n=([124])/i);return m?+m[1]:null})();
+const PHONE=!!(window.matchMedia&&matchMedia('(max-width:760px), (pointer:coarse)').matches);
+let NPREF=URLN||(PHONE?1:null);
+const CFG={N:NPREF||2};
 const PRESETS=[
  {name:'예제 1 · A³⁺ 8N + B 9N (B→B²⁺)',metals:[['B','2'],['A','3']],N:2,steps:[['ion','A',8],['metal','B',9]]},
  {name:'예제 2 · A³⁺ 10N + B 6N (B→B²⁺)',metals:[['B','2'],['A','3']],N:2,steps:[['ion','A',10],['metal','B',6]]},
@@ -276,7 +280,7 @@ function updateAddLabels(){
   [...$('#pM').options].forEach(o=>o.textContent=ion?`${o.value}${supL(o.value)}`:`금속 ${o.value}`);
   $('#exWrap').style.display=ion?'none':'flex';
 }
-$('#nsize').onchange=e=>{CFG.N=+e.target.value;resetAll('N 단위를 바꿔서 비커를 비웠어요.')};
+$('#nsize').onchange=e=>{CFG.N=+e.target.value;NPREF=CFG.N;resetAll('N 단위를 바꿔서 비커를 비웠어요.')};
 $('#pType').onchange=updateAddLabels;
 $('#preset').innerHTML=PRESETS.map((p,i)=>`<option value="${i}">${p.name}</option>`).join('');
 
@@ -759,7 +763,7 @@ $('#againBtn').onclick=()=>{
 $('#restartBtn').onclick=()=>{if(!S.procs.length&&!S.queue.length){$('#msg').textContent='먼저 ④에서 무언가를 넣어 주세요.';return}replay('처음부터 다시 재생해요.');startRun()};
 $('#loadBtn').onclick=()=>{
   const p=PRESETS[+$('#preset').value];
-  COND=[];METS=p.metals.map(([name,q],i)=>({name,q,ci:i,test:2}));CFG.N=p.N;buildSetup();resetAll(`예제를 불러왔어요: ${p.name}`);
+  COND=[];METS=p.metals.map(([name,q],i)=>({name,q,ci:i,test:2}));CFG.N=NPREF||p.N;buildSetup();resetAll(`예제를 불러왔어요: ${p.name}`);
   p.steps.forEach(([type,m,n,ex])=>S.queue.push({type,m,n:n*CFG.N,ex:!!ex}));renderQueue();renderCmp();
 };
 
