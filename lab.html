@@ -754,7 +754,7 @@ function qTitle(q){if(!q)return'프린트 문제';q=q.replace(/[<>&]/g,'');
       return{name,q,ci:i,test:/^[a-z]$/.test(q)?(+test||2):2}});
     const steps=Q.get('s').split(',').map(t=>{const r=/^([im])([A-Z][a-z0-9]?)(!|\d+(?:\.\d+)?)$/.exec(t);
       if(!r)throw new Error('step '+t);return{type:r[1]==='i'?'ion':'metal',m:r[2],ex:r[3]==='!',v:r[3]==='!'?0:+r[3]}});
-    METS=mets;CFG.N=+(Q.get('N')||2);
+    METS=mets;CFG.N=+(Q.get('N')||1);   // QR로 열면 N = 입자 1개가 기본
     if(Q.get('u'))UMAX=+Q.get('u');
     COND=(Q.get('c')||'').split(',').filter(Boolean).map(t=>{const [p,k,v]=t.split('_');return{p:+p,k,v:+v}});
     buildSetup();resetAll('');
