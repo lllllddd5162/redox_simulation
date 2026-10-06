@@ -1,77 +1,140 @@
 <!doctype html>
-<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>프린트 문제 열기</title>
-<style>body{font-family:system-ui,"Noto Sans KR",sans-serif;background:#f3f5f9;color:#1c2333;margin:0;padding:40px 16px;text-align:center}
-a{color:#2f6fed}</style></head>
-<body><p id="m">문제 모형을 여는 중…</p>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>모형 보기</title>
+<style>
+:root{--bg:#f3f5f9;--ink:#1c2333;--sub:#5d6678;--line:#e1e5ec}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Noto Sans KR',system-ui,-apple-system,sans-serif;line-height:1.55}
+main{max-width:560px;margin:0 auto;padding:28px 16px 40px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px}
+h1{font-size:20px;margin:0 0 4px}
+p{margin:6px 0;color:var(--sub);font-size:14px}
+a.go{display:block;margin-top:10px;padding:14px 16px;border-radius:12px;background:#1c2333;color:#fff;text-decoration:none;font-weight:700;font-size:16px}
+a.go small{display:block;font-weight:400;font-size:13px;opacity:.8;margin-top:2px}
+a.sub{display:inline-block;margin-top:14px;color:var(--sub);font-size:13px}
+.tip{margin-top:12px;font-size:13px;background:#fffbea;border:1px solid #f3e1a0;border-radius:10px;padding:8px 10px;color:#5a4a10}
+</style>
+</head>
+<body>
+<main><div class="card" id="box"><p>모형을 불러오는 중…</p></div></main>
 <script>
-/* 프린트 QR 코드 → 시뮬레이션 주소. 프린트를 다시 찍지 않고 여기서 연결 대상을 바꿀 수 있어요. */
+/* 프린트 QR(q.html?코드) → 시뮬레이션 연결표
+   I(제목, 금속판, 수용액 이온, 안내) : 기본 실험(index.html)
+   L(제목, 금속목록, 넣는 순서)      : 직접 실험(lab.html)
+     금속목록 = 반응성 큰 순서 "이름.전하"(미지수는 "이름.문자@값")
+     넣는 순서 = i이온:개수N, m금속:개수N, x금속(충분한 양) */
+function I(t,p,i,h){return 'index.html?t='+encodeURIComponent(t)+'&p='+p+'&i='+i+(h?'&h='+encodeURIComponent(h):'')}
+function L(t,m,s){return 'lab.html?t='+encodeURIComponent(t)+'&m='+m+'&s='+s}
+function one(t,url,note){return {t:t,items:[{label:t,url:url}],note:note}}
+
 const MAP={
-"P1-A": "index.html?q=P1-A",
-"P1-B1": "lab.html?m=Mg:2,Ag:1&s=iAg6,mMg!&q=P1-B1",
-"P1-B2": "lab.html?m=Mg:2,Al:3&s=iAl4,mMg!&q=P1-B2",
-"P1-B3": "index.html?plate=Zn&sol=H&q=P1-B3",
-"P1-B4": "lab.html?m=Al:3,Cu:2&s=iCu6,mAl2&q=P1-B4",
-"P1-B5": "lab.html?m=Zn:2,Cu:2,Ag:1&s=iAg6,mCu!,mZn!&q=P1-B5",
-"P1-B6": "lab.html?m=X:x:3,Cu:2&s=iCu6,mX!&c=1_tot_4&q=P1-B6",
-"P1-B7": "lab.html?m=Zn:2,Cu:2,Ag:1&s=iAg4,iCu2,mZn2,mZn2&q=P1-B7",
-"P1-C1": "index.html?plate=Mg&sol=Cu&q=P1-C1",
-"P1-C2": "index.html?plate=Al&sol=Ag&q=P1-C2",
-"P1-C3": "index.html?plate=Zn&sol=H&q=P1-C3",
-"P1-D2": "index.html?plate=Mg&sol=Cu&q=P1-D2",
-"P1-D3": "index.html?plate=Zn&sol=H&q=P1-D3",
-"P1-D4": "index.html?plate=Zn&sol=Ag&q=P1-D4",
-"P1-D5": "lab.html?m=Cu:2,Ag:1&s=iAg6,mCu!&q=P1-D5",
-"P1-D6": "lab.html?m=B:2,C:1&s=iC6,mB!&q=P1-D6",
-"P1-D7": "lab.html?m=A:a:2,B:1&s=iB6,mA1,mA1,mA2&c=1_tot_5,2_tot_4,3_tot_3&q=P1-D7",
-"P1-D8": "lab.html?m=Y:m:3,X:2&s=iX8,mY2&c=1_ion:X_5&q=P1-D8",
-"P2-s1": "index.html?plate=Al&sol=H&q=P2-s1",
-"P2-oR06": "index.html?plate=Zn&sol=Cu&q=P2-oR06",
-"P2-s2": "index.html?plate=Al&sol=Cu&q=P2-s2",
-"P2-oR07": "index.html?plate=Cu&sol=Ag&q=P2-oR07",
-"P2-s3": "index.html?plate=Zn&sol=Ag&q=P2-s3",
-"P2-oS05": "index.html?plate=Cu&sol=Ag&q=P2-oS05",
-"P2-s4": "index.html?plate=Mg&sol=Cu&q=P2-s4",
-"P2-oS06": "lab.html?m=B:b:2,A:a:1&s=iA8,mB2,mB1&c=1_tot_6,2_tot_5&q=P2-oS06",
-"P2-s5": "lab.html?m=A:a:3,B:1&s=iB9,mA1,mA1,mA2&c=1_tot_7,2_tot_5&q=P2-s5",
-"P2-oS07": "lab.html?m=C:c:2,A:2&s=iA6,mC!&c=1_tot_6&q=P2-oS07",
-"P2-s6": "lab.html?m=C:c:2,A:3&s=iA6,mC!&q=P2-s6",
-"P2-oS09": "lab.html?m=Z:z:3,Y:2&s=iY6,mZ!&q=P2-oS09",
-"P2-s7": "lab.html?m=Y:y:2,X:2&s=iX6,mY!&c=1_tot_6&q=P2-s7",
-"P2-oS10": "index.html?plate=Fe&sol=Ag&q=P2-oS10",
-"P2-s8": "index.html?plate=Al&sol=Cu&q=P2-s8",
-"P3-oU18": "lab.html?m=Z:z:3,Y:y:2,X:x:1&s=iX6,mY!,mZ!&c=1_tot_3,2_tot_2&q=P3-oU18",
-"P3-s1": "lab.html?m=Z:z:2,Y:y:3,X:x:1&s=iX6,mY!,mZ!&c=1_tot_2,2_tot_3&q=P3-s1",
-"P3-s2": "lab.html?m=Z:z:2,Y:y:1,X:x:1&s=iX4,mY!,mZ!&c=1_tot_4,2_tot_2,2_ion:Y_0&q=P3-s2",
-"P3-oU19": "lab.html?m=Z:2,Y:m:3&s=iY3,mZ3&c=1_ion:Y_1&q=P3-oU19",
-"P3-s3": "lab.html?m=Z:n:3,Y:m:2&s=iY4,mZ2&c=1_ion:Y_1,1_ion:Z_2&q=P3-s3",
-"P3-s4": "lab.html?m=Y:m:3,X:2&s=iX6,mY2&c=1_ion:X_3&q=P3-s4",
-"P3-oU20": "lab.html?m=A:2,B:1&s=iB6,mA!&q=P3-oU20",
-"P3-s5": "lab.html?m=A:1,B:2&s=iB4,mA!&q=P3-s5",
-"P3-s6": "lab.html?m=A:2,B:3&s=iB4,mA!&q=P3-s6",
-"P3-oU21": "lab.html?m=Y:1,X:m:2&s=iX4,mY!&c=1_ion:Y_8&q=P3-oU21",
-"P3-s7": "lab.html?m=Y:2,X:m:3&s=iX6,mY!&c=1_ion:Y_9&q=P3-s7",
-"P3-s8": "lab.html?m=Y:1,X:m:2&s=iX4,mY2,mY6&c=1_tot_5,2_tot_8&q=P3-s8",
-"P4-oD24-11": "index.html?plate=Cu&sol=Ag&q=P4-oD24-11",
-"P4-s1": "index.html?plate=Zn&sol=Cu&q=P4-s1",
-"P4-s2": "index.html?plate=Mg&sol=Al&q=P4-s2",
-"P4-s3": "index.html?plate=Zn&sol=H&q=P4-s3",
-"P4-oD25-3": "index.html?plate=Cu&sol=Ag&q=P4-oD25-3",
-"P4-s4": "index.html?plate=Zn&sol=Ag&q=P4-s4",
-"P4-s5": "index.html?plate=Mg&sol=Cu&q=P4-s5",
-"P4-s6": "index.html?plate=Al&sol=Zn&q=P4-s6",
-"P4-oR07": "index.html?plate=Cu&sol=Ag&q=P4-oR07",
-"P4-s7": "index.html?plate=Al&sol=Cu&q=P4-s7",
-"P4-s8": "index.html?plate=Mg&sol=H&q=P4-s8",
-"P4-oS05": "index.html?plate=Cu&sol=Ag&q=P4-oS05",
-"P4-s9": "index.html?plate=Zn&sol=Cu&q=P4-s9",
-"P4-s10": "index.html?plate=Al&sol=Ag&q=P4-s10",
-"P5-oD25-4": "lab.html?m=Y:m:3,X:2&s=iX4,mY2&c=1_ion:X_1&q=P5-oD25-4",
-"P5-s1": "lab.html?m=Y:m:2,X:3&s=iX6,mY3&c=1_ion:X_4&q=P5-s1",
-"P5-s2": "lab.html?m=Y:m:3,X:1&s=iX6,mY1&c=1_ion:X_3&q=P5-s2",
-"P5-s3": "lab.html?m=Y:m:3,X:2&s=iX6,mY2&c=1_tot_5&q=P5-s3"
+ /* ---------- Part 1 ---------- */
+ 'P1-A':one('예제 A',I('예제 A','Mg','Cu','아래에서 금속판과 수용액을 바꿔 가며 1~20번을 확인해 보세요.')),
+ 'P1-B1':one('예제 B-1',L('예제 B-1 · Ag⁺ 6N + Mg 충분히','Mg.2,Ag.1','iAg:6,xMg')),
+ 'P1-B2':one('예제 B-2',L('예제 B-2 · Al³⁺ 4N + Mg 충분히','Mg.2,Al.3','iAl:4,xMg')),
+ 'P1-B3':one('예제 B-3',I('예제 B-3 · 묽은 염산 + Zn','Zn','H','H⁺ 2개가 전자 2개를 얻어 H₂ 1개가 돼요. (입자 개수는 모형용)')),
+ 'P1-B4':one('예제 B-4',L('예제 B-4 · Cu²⁺ 6N + Al 2N','Al.3,Cu.2','iCu:6,mAl:2')),
+ 'P1-B5':one('예제 B-5',L('예제 B-5 · Ag⁺ 6N → Cu 충분히 → Zn 충분히','Zn.2,Cu.2,Ag.1','iAg:6,xCu,xZn'),'Cu를 꺼내는 과정은 생략했어요. 남은 Cu는 Zn²⁺와 반응하지 않아 결과는 같아요.'),
+ 'P1-B6':one('예제 B-6',L('예제 B-6 · Cu²⁺ 6N + X 충분히','X.a@3,Cu.2','iCu:6,xX')),
+ 'P1-B7':one('예제 B-7',L('예제 B-7 · Ag⁺ 4N, Cu²⁺ 2N + Zn','Zn.2,Cu.2,Ag.1','iAg:4,iCu:2,mZn:2,mZn:2'),'(다)는 Zn 2N, (라)는 Zn 2N을 더 넣은 거예요(총 4N).'),
+ 'P1-C1':one('예제 C-1',I('예제 C-1 · 황산 구리(Ⅱ) + Mg','Mg','Cu')),
+ 'P1-C2':one('예제 C-2',I('예제 C-2 · 질산 은 + Al','Al','Ag')),
+ 'P1-C3':{t:'예제 C-3',items:[{label:'Zn 조각 + 묽은 염산',url:I('예제 C-3 · 묽은 염산 + Zn','Zn','H')},{label:'Cu 조각 + 묽은 염산',url:I('예제 C-3 · 묽은 염산 + Cu','Cu','H')}]},
+ 'P1-D2':one('예제 D-2',I('예제 D-2 · 황산 구리(Ⅱ) + Mg 리본','Mg','Cu')),
+ 'P1-D3':{t:'예제 D-3',items:[{label:'아연 조각 + 묽은 염산',url:I('예제 D-3 · 묽은 염산 + Zn','Zn','H')},{label:'구리 조각 + 묽은 염산 (ㄴ 확인)',url:I('예제 D-3 · 묽은 염산 + Cu','Cu','H')}]},
+ 'P1-D4':one('예제 D-4',I('예제 D-4 · 질산 은 + Zn판','Zn','Ag')),
+ 'P1-D5':one('예제 D-5',L('예제 D-5 · Ag⁺ 6N + Cu (t₁ → t₂)','Cu.2,Ag.1','iAg:6,mCu:1,xCu'),'(나)까지가 t₁(Cu N 반응), (다)까지가 t₂예요.'),
+ 'P1-D6':{t:'예제 D-6',note:'반응성 A > B > C로 놓은 모형이에요.',items:[
+   {label:'(가) B²⁺ 수용액 + 금속 A',url:L('예제 D-6 (가) · B²⁺ + A','A.2,B.2,C.1','iB:4,xA')},
+   {label:'(나) A²⁺ 수용액 + 금속 C',url:L('예제 D-6 (나) · A²⁺ + C','A.2,B.2,C.1','iA:4,xC')},
+   {label:'(다) C⁺ 수용액 + 금속 B',url:L('예제 D-6 (다) · C⁺ + B','A.2,B.2,C.1','iC:4,xB')}]},
+ 'P1-D7':one('예제 D-7',L('예제 D-7 · B⁺ 6N + A (N, 2N, 4N)','A.a@2,B.1','iB:6,mA:1,mA:1,mA:2'),'넣은 A가 (나) N → (다) 2N → (라) 4N이 되도록 나눠 넣어요.'),
+ 'P1-D8':one('예제 D-8',L('예제 D-8 · X²⁺ 8N + Y 2N','Y.m@3,X.2','iX:8,mY:2')),
+
+ /* ---------- Part 2 ---------- */
+ 'P2-s1':one('Part 2 유사 1',I('Part 2 유사 1 · 묽은 염산 + Al','Al','H','Al 1개가 전자 3개 → H⁺ 3개 → H₂ 1.5개')),
+ 'P2-oR06':one('Part 2 원본 실력 향상 06',I('원본 실력 향상 06 · 황산 구리(Ⅱ) + Zn','Zn','Cu')),
+ 'P2-s2':one('Part 2 유사 2',I('Part 2 유사 2 · 황산 구리(Ⅱ) + Al','Al','Cu')),
+ 'P2-oR07':one('Part 2 원본 실력 향상 07',I('원본 실력 향상 07 · 질산 은 + Cu','Cu','Ag')),
+ 'P2-s3':one('Part 2 유사 3',I('Part 2 유사 3 · 질산 은 + Zn','Zn','Ag')),
+ 'P2-oS05':one('Part 2 원본 수능 유형 05',I('원본 수능 유형 05 · 질산 은 + Cu','Cu','Ag')),
+ 'P2-s4':one('Part 2 유사 4',I('Part 2 유사 4 · 황산 구리(Ⅱ) + Mg','Mg','Cu')),
+ 'P2-oS06':one('Part 2 원본 수능 유형 06',L('원본 수능 유형 06 · A⁺ 8N + B (2N, 3N)','B.b@2,A.a@1','iA:8,mB:2,mB:1'),'넣은 B가 (나) 2N → (다) 3N(=xN)이 되도록 나눠 넣어요.'),
+ 'P2-s5':one('Part 2 유사 5',L('Part 2 유사 5 · B 이온 9N + A (N, 2N, 4N)','A.a@3,B.b@1','iB:9,mA:1,mA:1,mA:2'),'넣은 A가 N → 2N(=xN) → 4N이 되도록 나눠 넣어요.'),
+ 'P2-oS07':{t:'Part 2 원본 수능 유형 07',items:[
+   {label:'비커 Ⅰ : A²⁺ 수용액 + 금속 C',url:L('원본 수능 유형 07 · 비커 Ⅰ','C.c@2,A.2,B.b@3','iA:6,xC')},
+   {label:'비커 Ⅱ : Bᵇ⁺ 수용액 + 금속 C',url:L('원본 수능 유형 07 · 비커 Ⅱ','C.c@2,A.2,B.b@3','iB:6,xC')}]},
+ 'P2-s6':{t:'Part 2 유사 6',items:[
+   {label:'비커 Ⅰ : A³⁺ 수용액 + 금속 C',url:L('Part 2 유사 6 · 비커 Ⅰ','C.c@2,A.3,B.1','iA:6,xC')},
+   {label:'비커 Ⅱ : B⁺ 수용액 + 금속 C',url:L('Part 2 유사 6 · 비커 Ⅱ','C.c@2,A.3,B.1','iB:6,xC')}]},
+ 'P2-oS09':{t:'Part 2 원본 수능 유형 09',items:[
+   {label:'(가) XNO₃ 수용액 + Y',url:L('원본 수능 유형 09 (가) · X⁺ + Y','Z.c@3,Y.2,X.1','iX:6,xY')},
+   {label:'(나) Y(NO₃)₂ 수용액 + Z',url:L('원본 수능 유형 09 (나) · Y²⁺ + Z','Z.c@3,Y.2,X.1','iY:6,xZ')}]},
+ 'P2-s7':{t:'Part 2 유사 7',items:[
+   {label:'(가) X(NO₃)₂ 수용액 + Y',url:L('Part 2 유사 7 (가) · X²⁺ + Y','Y.a@2,X.2,Z.1','iX:6,xY')},
+   {label:'(나) ZNO₃ 수용액 + X',url:L('Part 2 유사 7 (나) · Z⁺ + X','Y.a@2,X.2,Z.1','iZ:6,xX')}]},
+ 'P2-oS10':one('Part 2 원본 수능 유형 10',I('원본 수능 유형 10 · 질산 은 + Fe','Fe','Ag')),
+ 'P2-s8':one('Part 2 유사 8',I('Part 2 유사 8 · 황산 구리(Ⅱ) + Al','Al','Cu')),
+
+ /* ---------- Part 3 ---------- */
+ 'P3-oU18':one('Part 3 원본 대단원 18',L('원본 대단원 18 · X 이온 → Y → Z','Z.c@3,Y.b@2,X.a@1','iX:6,xY,xZ'),'X~Z의 전하(a, b, c)는 1~3 중 하나예요.'),
+ 'P3-s1':one('Part 3 유사 1',L('Part 3 유사 1 · X 이온 → Y → Z','Z.c@2,Y.b@3,X.a@1','iX:6,xY,xZ'),'X~Z의 전하(a, b, c)는 1~3 중 하나예요.'),
+ 'P3-s2':one('Part 3 유사 2',L('Part 3 유사 2 · X 이온 → Y → Z','Z.c@2,Y.b@1,X.a@1','iX:4,xY,xZ'),'X~Z의 전하(a, b, c)는 1~3 중 하나예요.'),
+ 'P3-oU19':{t:'Part 3 원본 대단원 19',items:[
+   {label:'(가) X²⁺ 3N + 금속 Z',url:L('원본 대단원 19 (가)','Z.2,X.2,Y.m@3','iX:3,xZ')},
+   {label:'(나) Yᵐ⁺ 3N + 금속 Z',url:L('원본 대단원 19 (나)','Z.2,X.2,Y.m@3','iY:3,mZ:3')}]},
+ 'P3-s3':{t:'Part 3 유사 3',items:[
+   {label:'(가) X²⁺ 3N + 금속 Z',url:L('Part 3 유사 3 (가)','Z.n@3,X.2,Y.m@2','iX:3,xZ')},
+   {label:'(나) Yᵐ⁺ 4N + 금속 Z',url:L('Part 3 유사 3 (나)','Z.n@3,X.2,Y.m@2','iY:4,mZ:2')}]},
+ 'P3-s4':one('Part 3 유사 4',L('Part 3 유사 4 · X²⁺ 6N + Y','Y.m@3,X.2','iX:6,mY:2')),
+ 'P3-oU20':one('Part 3 원본 대단원 20',L('원본 대단원 20 · BNO₃ + A','A.2,B.1','iB:6,xA')),
+ 'P3-s5':one('Part 3 유사 5',L('Part 3 유사 5 · B(NO₃)₂ + A','A.1,B.2','iB:6,xA')),
+ 'P3-s6':one('Part 3 유사 6',L('Part 3 유사 6 · B(NO₃)₃ + A','A.2,B.3','iB:6,xA')),
+ 'P3-oU21':one('Part 3 원본 대단원 21',L('원본 대단원 21 · Xᵐ⁺ 4N + Y 충분히','Y.1,X.m@2','iX:4,xY')),
+ 'P3-s7':one('Part 3 유사 7',L('Part 3 유사 7 · Xᵐ⁺ 6N + Y 충분히','Y.2,X.m@3','iX:6,xY')),
+ 'P3-s8':one('Part 3 유사 8',L('Part 3 유사 8 · Xᵐ⁺ 4N + Y (2N, 8N)','Y.1,X.m@2','iX:4,mY:2,mY:6'),'넣은 Y가 (나) 2N → (다) 8N이 되도록 나눠 넣어요.'),
+
+ /* ---------- Part 4 ---------- */
+ 'P4-oD24-11':one('Part 4 원본 도선 2024 11번',I('원본 도선고 2024 11번 · 질산 은 + Cu','Cu','Ag')),
+ 'P4-s1':one('Part 4 유사 1',I('Part 4 유사 1 · 황산 구리(Ⅱ) + Zn','Zn','Cu')),
+ 'P4-s2':one('Part 4 유사 2',I('Part 4 유사 2 · 염화 알루미늄 + Mg','Mg','Al')),
+ 'P4-s3':one('Part 4 유사 3',I('Part 4 유사 3 · 묽은 염산 + Zn','Zn','H')),
+ 'P4-oD25-3':one('Part 4 원본 도선 2025 3번',I('원본 도선고 2025 3번 · 질산 은 + Cu','Cu','Ag')),
+ 'P4-s4':one('Part 4 유사 4',I('Part 4 유사 4 · 질산 은 + Zn','Zn','Ag')),
+ 'P4-s5':one('Part 4 유사 5',I('Part 4 유사 5 · 황산 구리(Ⅱ) + Mg','Mg','Cu')),
+ 'P4-s6':one('Part 4 유사 6',I('Part 4 유사 6 · 황산 아연 + Al','Al','Zn')),
+ 'P4-oR07':one('Part 4 원본 실력 향상 07',I('원본 실력 향상 07 · 질산 은 + Cu','Cu','Ag')),
+ 'P4-s7':one('Part 4 유사 7',I('Part 4 유사 7 · 황산 구리(Ⅱ) + Al','Al','Cu')),
+ 'P4-s8':one('Part 4 유사 8',I('Part 4 유사 8 · 묽은 염산 + Mg','Mg','H')),
+ 'P4-oS05':one('Part 4 원본 수능 유형 05',I('원본 수능 유형 05 · 질산 은 + Cu','Cu','Ag')),
+ 'P4-s9':one('Part 4 유사 9',I('Part 4 유사 9 · 황산 구리(Ⅱ) + Zn','Zn','Cu')),
+ 'P4-s10':one('Part 4 유사 10',I('Part 4 유사 10 · 질산 은 + Al','Al','Ag')),
+
+ /* ---------- Part 5 ---------- */
+ 'P5-oD25-4':one('Part 5 원본 도선 2025 4번',L('원본 도선고 2025 4번 · X²⁺ 4N + Y 2N','Y.m@3,X.2','iX:4,mY:2')),
+ 'P5-s1':one('Part 5 유사 1',L('Part 5 유사 1 · X³⁺ 6N + Y 3N','Y.m@2,X.3','iX:6,mY:3')),
+ 'P5-s2':one('Part 5 유사 2',L('Part 5 유사 2 · X⁺ 6N + Y N','Y.m@3,X.1','iX:6,mY:1')),
+ 'P5-s3':one('Part 5 유사 3',L('Part 5 유사 3 · X²⁺ 6N + Y 2N','Y.m@3,X.2','iX:6,mY:2'))
 };
-const k=decodeURIComponent(location.search.slice(1)).split('&')[0];
-if(MAP[k])location.replace(MAP[k]);
-else document.getElementById('m').innerHTML='알 수 없는 문제 코드예요: '+k.replace(/[<>&]/g,'')+'<br><br><a href="index.html">기본 실험으로 가기</a>';
-</script></body></html>
+
+const code=decodeURIComponent(location.search.replace(/^\?/,'').split('&')[0]||'');
+const box=document.getElementById('box');
+const esc=x=>String(x).replace(/[<>&]/g,'');
+const E=MAP[code];
+if(E&&E.items.length===1&&!E.note){location.replace(E.items[0].url)}
+else if(E){
+  box.innerHTML='<h1>📋 '+esc(E.t)+'</h1>'+(E.items.length>1?'<p>보고 싶은 실험을 고르세요.</p>':'')+
+    E.items.map(function(it){return '<a class="go" href="'+it.url+'">▶ '+esc(it.label)+'</a>'}).join('')+
+    (E.note?'<div class="tip">'+esc(E.note)+'</div>':'')+
+    '<a class="sub" href="index.html">기본 실험으로</a> · <a class="sub" href="lab.html">직접 실험으로</a>';
+}else{
+  box.innerHTML='<h1>모형을 찾지 못했어요</h1><p>QR 코드: '+esc(code||'(없음)')+'</p>'+
+    '<a class="go" href="index.html">▶ 기본 실험<small>금속판과 수용액을 골라 반응 보기</small></a>'+
+    '<a class="go" href="lab.html">▶ 직접 실험<small>이온과 금속의 개수를 넣어 문제 풀기</small></a>';
+}
+</script>
+</body>
+</html>
