@@ -96,6 +96,13 @@ main>*,.setup>*,.grid2>*{min-width:0}
 .startOv button:active{transform:scale(.97)}
 .startOv .sub{font-size:13px;color:#1c2333;background:rgba(255,255,255,.85);border-radius:999px;padding:3px 12px}
 @media(max-width:600px){.startOv button{font-size:18px;padding:12px 24px}}
+.ptitle{display:none;align-items:center;gap:8px;font-size:16px;font-weight:700;margin-bottom:10px;padding:8px 12px;background:#fff7e6;border:1px solid #f3d9a4;border-radius:10px}
+.ptitle.on{display:flex}
+.qrbox{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start}
+#qrImg{width:200px;height:200px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;align-items:center;justify-content:center}
+#qrImg img,#qrImg canvas{width:184px!important;height:184px!important}
+#qrUrl{width:100%;font-size:12.5px;word-break:break-all;background:#f7f8fb;border:1px solid var(--line);border-radius:8px;padding:8px;margin:6px 0;min-height:56px;font-family:ui-monospace,monospace}
+@media(max-width:600px){.qrbox{grid-template-columns:1fr}#qrImg{margin:0 auto}}
 </style>
 </head>
 <body>
@@ -123,6 +130,7 @@ main>*,.setup>*,.grid2>*{min-width:0}
   </section>
 
   <section class="card">
+    <div class="ptitle" id="ptitle"></div>
     <div class="simwrap"><canvas id="sim"></canvas><div class="status" id="status"></div><div class="startOv" id="startOv"><button id="startBtn" type="button">▶ 반응 시작</button><div class="sub" id="startSub"></div></div></div>
     <div class="addrow">
       <b>④ 비커에 넣기</b>
@@ -141,6 +149,7 @@ main>*,.setup>*,.grid2>*{min-width:0}
       <button class="btn ghost" id="restartBtn">⏮ 처음부터 다시 재생</button>
       <button class="btn ghost" id="fastBtn">⏩ 결과 바로 보기</button>
       <button class="btn ghost" id="resetBtn">↺ 비커 비우기</button>
+      <button class="btn ghost" id="qrBtn">🔗 이 실험 QR 만들기</button>
       <label>속도 <input type="range" id="speed" min="0.2" max="3" step="0.1" value="0.7"></label>
       <label><input type="checkbox" id="showE" checked> 전자</label>
       <label><input type="checkbox" id="showB" checked> 설명 상자</label>
@@ -176,8 +185,25 @@ main>*,.setup>*,.grid2>*{min-width:0}
     <div class="tw" id="cmp"></div>
     <p class="hint">노란 줄은 지금 애니메이션에 쓰는 시험값, 초록 줄은 넣은 조건을 모두 만족하는 경우예요.</p>
   </section>
+  <section class="card" id="qrCard" style="display:none">
+    <h2>이 실험 QR 코드 <small>학생이 찍으면 지금 설정(금속·전하·반응성·넣는 순서)이 그대로 불러와져요</small></h2>
+    <div class="qrbox">
+      <div id="qrImg"></div>
+      <div>
+        <label style="font-size:14px">문제 이름 <input type="text" id="qrTitle" placeholder="예: 187번" style="width:180px"></label>
+        <div id="qrUrl"></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn ghost" id="qrCopy">주소 복사</button>
+          <button class="btn ghost" id="qrSave">QR 이미지 저장</button>
+          <button class="btn ghost" id="qrClose">닫기</button>
+        </div>
+        <p class="hint" id="qrNote">학습지에 붙일 QR은 GitHub 사이트에서 열었을 때 만들어 주세요. (내 컴퓨터 파일로 열면 학생 폰에서 열리지 않아요)</p>
+      </div>
+    </div>
+  </section>
 </main>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 /* ---------- 구형 모바일 브라우저(카카오톡·네이버 앱 내 브라우저, iOS 15 이하 등) 호환 ---------- */
 if(window.CanvasRenderingContext2D&&!CanvasRenderingContext2D.prototype.roundRect){
@@ -247,8 +273,8 @@ function buildSetup(){
       if(!(v>=1&&v<=n)){$('#msg').textContent=`반응성 순위는 1~${n} 사이의 숫자로 써 주세요.`;e.target.value=i+1;return}
       METS.splice(i,1);METS.splice(v-1,0,o);replay(`${o.name}의 반응성을 ${v}위로 바꿔서 처음부터 다시 진행해요.`)};
     row.querySelector('.del').onclick=()=>{METS.splice(i,1);changed(`금속 ${o.name}을(를) 지웠어요.`)};
-    row.querySelector('.nm').onchange=e=>{const v=e.target.value.trim().toUpperCase();
-      if(!/^[A-Z][A-Z0-9]?$/.test(v)||(v!==o.name&&METS.some(x=>x.name===v))){$('#msg').textContent='금속 이름은 겹치지 않는 영문 1~2글자로 써 주세요.';e.target.value=o.name;return}
+    row.querySelector('.nm').onchange=e=>{const v0=e.target.value.trim();const v=v0.charAt(0).toUpperCase()+v0.slice(1);
+      if(!/^[A-Z][A-Za-z0-9]?$/.test(v)||(v!==o.name&&METS.some(x=>x.name===v))){$('#msg').textContent='금속 이름은 겹치지 않는 영문 1~2글자로 써 주세요.';e.target.value=o.name;return}
       o.name=v;changed('금속 이름을 바꿔서 비커를 비웠어요.')};
     row.querySelector('.qq').onchange=e=>{const v=e.target.value.trim();
       if(!/^[1-4]$/.test(v)&&!/^[a-z]$/.test(v)){$('#msg').textContent='이온 전하는 1~4의 숫자나 영문 소문자 한 글자(a, b, m …)로 써 주세요.';e.target.value=o.q;return}
@@ -763,7 +789,7 @@ $('#againBtn').onclick=()=>{
 $('#restartBtn').onclick=()=>{if(!S.procs.length&&!S.queue.length){$('#msg').textContent='먼저 ④에서 무언가를 넣어 주세요.';return}replay('처음부터 다시 재생해요.');startRun()};
 $('#loadBtn').onclick=()=>{
   const p=PRESETS[+$('#preset').value];
-  COND=[];METS=p.metals.map(([name,q],i)=>({name,q,ci:i,test:2}));CFG.N=NPREF||p.N;buildSetup();resetAll(`예제를 불러왔어요: ${p.name}`);
+  $('#ptitle').classList.remove('on');COND=[];METS=p.metals.map(([name,q],i)=>({name,q,ci:i,test:2}));CFG.N=NPREF||p.N;buildSetup();resetAll(`예제를 불러왔어요: ${p.name}`);
   p.steps.forEach(([type,m,n,ex])=>S.queue.push({type,m,n:n*CFG.N,ex:!!ex}));renderQueue();renderCmp();
 };
 
@@ -777,11 +803,63 @@ function loop(now){
   if(now-lastUI>150){renderNow();updateStatus();$('#againBtn').disabled=!S.snap;
     const emp=isEmpty();const ov=(!S.running&&!S.ev&&(S.queue.length>0||!!S.cur))||emp;$('#startOv').classList.toggle('on',ov);
     if(ov&&emp){const pn=PRESETS[+$('#preset').value||0].name.split(' · ')[0];$('#startSub').textContent=`비커가 비어 있어요 · 누르면 ${pn}로 시작 (직접 넣으려면 ④)`}
-    else if(ov){const q=S.queue.map(p=>p.type==='ion'?`${p.m}${supL(p.m)} ${fmtN(p.n)}`:`금속 ${p.m} ${p.ex?'충분한 양':fmtN(p.n)}`);$('#startSub').textContent=q.length?'넣을 것: '+q.join(' → '):'이어서 진행'}
+    else if(ov){const pt=$('#ptitle').classList.contains('on')?$('#ptitle').textContent.replace('📋 ','')+' · ':'';const q=S.queue.map(p=>p.type==='ion'?`${p.m}${supL(p.m)} ${fmtN(p.n)}`:`금속 ${p.m} ${p.ex?'충분한 양':fmtN(p.n)}`);$('#startSub').textContent=pt+(q.length?'넣을 것: '+q.join(' → '):'이어서 진행')}
     lastUI=now}
   }catch(e){if(!loop.err){loop.err=1;showErr(e)}}
 }
+/* ---------- 문제 QR: 주소에 실험 설정 담기 ----------
+   lab.html?t=187번&m=B.2,A.3&s=iA:8,mB:9&n=1   (미지수: X.m@3 = 전하 m, 시험값 3)
+   m: 반응성 큰 순서대로 [이름][전하](@시험값)   s: i=이온 수용액, m=고체 금속, x=충분한 양의 금속 / 이름:개수(N)   n: N 단위 */
+function encodeExp(title){
+  const m=METS.map(o=>o.name+'.'+o.q+(isUnk(o)?'@'+o.test:'')).join(',');
+  const st=[...S.procs,...S.queue].map(p=>(p.ex?'x':p.type==='ion'?'i':'m')+p.m+(p.ex?'':':'+(+(p.n/CFG.N).toFixed(2)))).join(',');
+  let u=location.origin+location.pathname+'?';
+  if(title)u+='t='+encodeURIComponent(title)+'&';
+  return u+'m='+m+'&s='+st;
+}
+function loadFromURL(){
+  const P=new URLSearchParams(location.search);
+  if(!P.get('m')||!P.get('s'))return false;
+  const ms=[];
+  for(const it of P.get('m').split(',')){const r=it.trim().match(/^([A-Z][A-Za-z0-9]?)\.([1-4]|[a-z])(?:@([1-4]))?$/);if(!r)return false;ms.push({name:r[1],q:r[2],ci:ms.length,test:r[3]?+r[3]:2})}
+  const steps=[];
+  for(const it of P.get('s').split(',')){const r=it.trim().match(/^([imx])([A-Z][A-Za-z0-9]?)(?::([\d.]+))?$/);if(!r||!ms.some(o=>o.name===r[2]))return false;steps.push({type:r[1]==='i'?'ion':'metal',m:r[2],v:r[3]?+r[3]:0,ex:r[1]==='x'})}
+  // N 고르기: 주소의 n → (폰 1 / PC 2) → 소수·개수 제한에 맞게
+  const cands=URLN?[URLN,1,2,4]:(PHONE?[1,2,4]:[2,1,4]);
+  const fits=N=>steps.every(s=>Number.isInteger(+(s.v*N).toFixed(6)))&&steps.filter(s=>s.type==='ion').reduce((a,s)=>a+s.v*N,0)<=75&&steps.filter(s=>s.type==='metal'&&!s.ex).reduce((a,s)=>a+s.v*N,0)<=PC*PR;
+  CFG.N=cands.find(fits)||cands.find(N=>steps.every(s=>Number.isInteger(+(s.v*N).toFixed(6))))||2;
+  METS=ms;COND=[];buildSetup();resetAll('');
+  steps.forEach(s=>S.queue.push({type:s.type,m:s.m,n:Math.round(s.v*CFG.N),ex:s.ex}));
+  renderQueue();renderCmp();
+  const t=P.get('t');
+  if(t){$('#ptitle').innerHTML='📋 '+t.replace(/[<>&]/g,'');$('#ptitle').classList.add('on');document.title=t+' · 직접 실험'}
+  $('#msg').textContent='문제 설정을 불러왔어요. ▶ 반응 시작을 누르세요.';
+  return true;
+}
+function drawQR(){
+  const url=encodeExp($('#qrTitle').value.trim());
+  $('#qrUrl').textContent=url;
+  const box=$('#qrImg');box.innerHTML='';
+  if(window.QRCode){new QRCode(box,{text:url,width:184,height:184,correctLevel:QRCode.CorrectLevel.M})}
+  else box.innerHTML='<span class="hint">QR 도구를 불러오지 못했어요.<br>주소를 복사해서 QR 생성기에 넣어 주세요.</span>';
+  $('#qrNote').style.display=location.protocol==='file:'?'block':'none';
+}
+$('#qrBtn').onclick=()=>{
+  if(!S.procs.length&&!S.queue.length){$('#msg').textContent='먼저 예제를 불러오거나 ④에서 넣을 것을 정해 주세요. 그 설정이 QR에 담겨요.';return}
+  const pt=$('#ptitle').textContent.replace('📋 ','');if(pt&&!$('#qrTitle').value)$('#qrTitle').value=pt;
+  $('#qrCard').style.display='block';drawQR();$('#qrCard').scrollIntoView({behavior:'smooth'});
+};
+$('#qrTitle').oninput=drawQR;
+$('#qrClose').onclick=()=>{$('#qrCard').style.display='none'};
+$('#qrCopy').onclick=()=>{const u=$('#qrUrl').textContent;(navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(()=>{$('#msg').textContent='주소를 복사했어요.'}).catch(()=>{$('#msg').textContent='복사가 안 되면 주소를 길게 눌러 복사해 주세요.'})};
+$('#qrSave').onclick=()=>{const c=$('#qrImg').querySelector('canvas');if(!c)return;
+  const pad=24,t=$('#qrTitle').value.trim(),out=document.createElement('canvas');out.width=c.width+pad*2;out.height=c.height+pad*2+(t?36:0);
+  const g=out.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,out.width,out.height);g.drawImage(c,pad,pad);
+  if(t){g.fillStyle='#1c2333';g.font='700 20px "Noto Sans KR",sans-serif';g.textAlign='center';g.fillText(t,out.width/2,c.height+pad+26)}
+  const a=document.createElement('a');a.href=out.toDataURL('image/png');a.download=(t||'실험')+'_QR.png';a.click()};
+
 buildSetup();initState();renderLog();renderCmp();
+loadFromURL();
 requestAnimationFrame(loop);
 </script>
 </body>
