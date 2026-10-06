@@ -79,6 +79,9 @@ main>*,.stage>*,.grid2>*{min-width:0}
 .startOv button:active{transform:scale(.97)}
 .startOv .sub{font-size:13px;color:#1c2333;background:rgba(255,255,255,.85);border-radius:999px;padding:3px 12px}
 @media(max-width:600px){.startOv button{font-size:18px;padding:12px 24px}}
+.ptitle{display:none;font-size:16px;font-weight:700;margin-bottom:12px;padding:8px 12px;background:#fff7e6;border:1px solid #f3d9a4;border-radius:10px}
+.ptitle.on{display:block}
+.ptitle small{display:block;font-weight:400;font-size:13px;color:var(--sub);margin-top:2px}
 </style>
 </head>
 <body>
@@ -89,6 +92,7 @@ main>*,.stage>*,.grid2>*{min-width:0}
 </header>
 <main>
   <section class="card">
+    <div class="ptitle" id="ptitle"></div>
     <div class="stage">
       <svg id="beaker" viewBox="0 0 300 380" aria-label="비커">
         <defs>
@@ -208,6 +212,10 @@ const plateSel=$('#plateSel'), solSel=$('#solSel');
 PLATES.forEach(m=>plateSel.add(new Option(`${METALS[m].name} (${m})`,m)));
 SOLS.forEach(m=>solSel.add(new Option(`${METALS[m].salt} (${m}${supU(METALS[m].q)})`,m)));
 plateSel.value='Cu'; solSel.value='Ag';
+/* 주소로 조합 지정: index.html?p=Zn&i=Cu&t=예제 */
+const QP=new URLSearchParams(location.search);
+if(PLATES.includes(QP.get('p')))plateSel.value=QP.get('p');
+if(SOLS.includes(QP.get('i')))solSel.value=QP.get('i');
 
 /* ---------- 캔버스 ---------- */
 const cv=$('#sim'),ctx=cv.getContext('2d'),chc=$('#chart'),chx=chc.getContext('2d');
@@ -665,6 +673,7 @@ function loop(now){
   }catch(e){if(!loop.err){loop.err=1;showErr(e)}}
 }
 resetAll();
+if(QP.get('t')){const esc=x=>x.replace(/[<>&]/g,'');$('#ptitle').innerHTML='📋 '+esc(QP.get('t'))+(QP.get('h')?'<small>'+esc(QP.get('h'))+'</small>':'');$('#ptitle').classList.add('on');document.title=QP.get('t')+' · 금속의 반응성'}
 requestAnimationFrame(loop);
 </script>
 </body>
